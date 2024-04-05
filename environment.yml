@@ -1,0 +1,13 @@
+name: evollm
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+
+  - anthropic
+  - dask
+  - openai
+
+  - pip
+  - pip:
+    - axelrod
