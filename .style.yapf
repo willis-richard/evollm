@@ -1,0 +1,5 @@
+[style]
+# for use with Google open source projects
+based_on_style = yapf
+# google open source uses 2, but this is not working
+indent_width = 2
