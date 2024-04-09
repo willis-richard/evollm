@@ -2,17 +2,19 @@
 
 import logging
 import os
-from pprint import pprint
+import pandas as pd
 
 import axelrod as axl
 from axelrod.action import Action
 from concordia.language_model.gpt_model import GptLanguageModel
 
-from fixed_tournament import FixedTournament
-from games import chicken
+from fixed_tournament import _play_matches_mixed, _build_tasks_including_mirror
+from games import Chicken
 from llm_agent import Agent
 
-C, D = Action.C, Action.D
+# monkey patch methods
+axl.Tournament._play_matches = _play_matches_mixed
+axl.ResultSet._build_tasks = _build_tasks_including_mirror
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,28 +29,13 @@ model = GptLanguageModel(
 
 agent = Agent(model)
 
-players = [axl.Cooperator(), axl.Defector()]
-tournament = FixedTournament(
+players = [agent, axl.TitForTat()]
+chicken = Chicken()
+tournament = axl.Tournament(
     players, game=chicken, prob_end=0.05, noise=0.1, repetitions=1, seed=1)
+
 results = tournament.play(processes=None, filename="results_full.txt")
 
-# print("pprint(results.match_lengths)")
-# pprint(results.match_lengths)
-# print("print(results.normalised_scores)")
-# print(results.normalised_scores)
-# print("print(results.ranked_names)")
-# print(results.ranked_names)
-# print("pprint(results.payoff_matrix)")
-# pprint(results.payoff_matrix)
-# print("pprint(results.normalised_cooperation)")
-# pprint(results.normalised_cooperation)
-# print("print(results.initial_cooperation_rate)")
-# print(results.initial_cooperation_rate)
-# print("pprint(results.normalised_state_to_action_distribution)")
-# pprint(results.normalised_state_to_action_distribution)
-
-pprint(results.summarise())
-import pandas as pd
 df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
 print(df)
 results.write_summary("results_summary.txt")

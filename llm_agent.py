@@ -26,13 +26,13 @@ class Agent(axl.player.Player):
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Not first move
     if not self.history:
-      state_prompt = " This is the first round."
+      state_prompt = "This is the first round."
     else:
-      state_prompt = self._state_prompt_fn(self, opponent)
+      state_prompt = self.match_attributes["game"].state_prompt_fn(self, opponent)
 
     prompt = "\n".join([
-        self._game_prompt_fn(self.match_attributes["length"]),
-        self._reward_prompt_fn(), state_prompt,
+        self.match_attributes["game"].game_prompt_fn(self.match_attributes["length"]),
+        self.match_attributes["game"].reward_prompt_fn(), state_prompt,
         "What action do you want to take?"
     ])
 
@@ -48,3 +48,6 @@ class Agent(axl.player.Player):
       output = "C"
 
     return axl.Action.from_char(output)
+
+  def __repr__(self):
+    return f"{self.name}({self._model._model_name})"
