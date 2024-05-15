@@ -6,6 +6,9 @@ dependencies:
 
   - dask
 
+  # optionals
+  - jupyterlab
+
   # dev packages
   - autoflake>=1.7.5
   - epc>=0.0.5

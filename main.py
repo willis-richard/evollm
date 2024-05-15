@@ -27,12 +27,13 @@ model = GptLanguageModel(
     "gpt-3.5-turbo",
 )
 
-agent = Agent(model)
+reward_prompts = ["selfish", "adversarial", "cooperative"]
 
-players = [agent, axl.TitForTat()]
+players = [Agent(model, rp) for rp in reward_prompts]
 chicken = Chicken()
 tournament = axl.Tournament(
-    players, game=chicken, prob_end=0.05, noise=0.1, repetitions=1, seed=1)
+    players, game=chicken, turns=20, noise=0.1, repetitions=1, seed=1)
+# prob_end=0.05,
 
 results = tournament.play(processes=None, filename="results_full.txt")
 
