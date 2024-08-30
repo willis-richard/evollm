@@ -1,2 +1,5 @@
 .pylintrc
 .virtual_documents
+results
+results_full.txt
+results_summary.txt

@@ -1,9 +1,8 @@
 import logging
 
 import axelrod as axl
-from concordia.language_model.language_model import (InvalidResponseError,
-                                                     LanguageModel)
 from concordia.language_model.gpt_model import GptLanguageModel
+from concordia.language_model.language_model import LanguageModel
 
 logger = logging.getLogger(__name__)
 
