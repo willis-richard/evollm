@@ -1,5 +1,7 @@
 import axelrod as axl
 
+from common import Attitude, SocialDilemma
+
 
 class LLM_Strategy(axl.player.Player):
   def __repr__(self):
@@ -16,6 +18,7 @@ class LLM_Strategy(axl.player.Player):
 
 
 class Selfish_1(LLM_Strategy):
+  attitude = Attitude.SELFISH
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Start with defection
@@ -39,6 +42,7 @@ class Selfish_1(LLM_Strategy):
 
 
 class Selfish_2(LLM_Strategy):
+  attitude = Attitude.SELFISH
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Initialize cooperation probability
@@ -60,6 +64,7 @@ class Selfish_2(LLM_Strategy):
 
 
 class Selfish_3(LLM_Strategy):
+  attitude = Attitude.SELFISH
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Initialize cooperation probability
@@ -85,6 +90,7 @@ class Selfish_3(LLM_Strategy):
 
 
 class Cooperative_1(LLM_Strategy):
+  attitude = Attitude.COOPERATIVE
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Start with cooperation
@@ -118,6 +124,7 @@ class Cooperative_1(LLM_Strategy):
 
 
 class Cooperative_2(LLM_Strategy):
+  attitude = Attitude.COOPERATIVE
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Start with cooperation
@@ -143,6 +150,7 @@ class Cooperative_2(LLM_Strategy):
 
 
 class Cooperative_3(LLM_Strategy):
+  attitude = Attitude.COOPERATIVE
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Initialize cooperation probability
@@ -185,6 +193,7 @@ class Cooperative_3(LLM_Strategy):
 
 
 class Aggressive_1(LLM_Strategy):
+  attitude = Attitude.AGGRESSIVE
 
   def strategy(self, opponent: axl.Player) -> axl.Action:
     # Start with defection
@@ -220,6 +229,7 @@ class Aggressive_1(LLM_Strategy):
 
 
 class Aggressive_2(LLM_Strategy):
+  attitude = Attitude.AGGRESSIVE
 
   def strategy(self, opponent: axl.Player) -> axl.Action:
     # Start with defection
@@ -251,6 +261,7 @@ class Aggressive_2(LLM_Strategy):
 
 
 class Aggressive_3(LLM_Strategy):
+  attitude = Attitude.AGGRESSIVE
 
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
     # Start with defection

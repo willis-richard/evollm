@@ -4,7 +4,7 @@ from typing import List
 import axelrod as axl
 
 
-def _play_matches_mixed(self, chunk, build_results=True):
+def _play_matches_fixed_noise(self, chunk, build_results=True):
   """
   See axl.Tournament class.
 
@@ -13,7 +13,8 @@ def _play_matches_mixed(self, chunk, build_results=True):
       rounds that have noise are the same, as long as no player touches
       the same random number generator.
   2. Each match is repeated with the players swapped, so that the noise
-      will effect them identically.
+      will effect them identically, except for the mirror matchup, which
+      is only played once, as it is scored twice.
   """
   interactions = defaultdict(list)
   index_pair, match_params, repetitions, _ = chunk
@@ -54,6 +55,8 @@ def _play_matches_mixed(self, chunk, build_results=True):
 def _build_tasks_including_mirror(self, df):
     """
     Returns a tuple of dask tasks
+
+    This has modified ResultSet._build_tasks to no longer ignore self-interaction
     """
     groups = ["Repetition", "Player index", "Opponent index"]
     columns = ["Turns", "Score per turn", "Score difference per turn"]
