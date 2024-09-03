@@ -1,5 +1,6 @@
 import logging
 
+import ast
 import axelrod as axl
 import os
 from common import Attitude, Chicken, StagHunt
@@ -23,16 +24,16 @@ def create_game_prompt(game: axl.Game) -> str:
 | C | {R},{R} | {S},{T} |
 | D | {T},{S} | {P},{P} |
 
-If you play C and your opponent plays C, you score {R} and they score {R}.
+If you play C and your opponent plays C, you both score {R}.
 If you play C and your opponent plays D, you score {S} and they score {T}.
 If you play D and your opponent plays C, you score {T} and they score {S}.
-If you play D and your opponent plays D, you score {P} and they score {P}.
+If you play D and your opponent plays D, you both score {P}.
 
 Each match has a 5% chance of stopping after each round. Additionally, it uses noisy actions: independently for both players, there is a 10% chance that their chosen action is replaced with a randomly drawn action. You do not need to implement the noise, just be aware that your action and/or that of your opponent may not be the one chosen."""
 
 
 def create_attitude_prompt(attitude: Attitude) -> str:
-    return f"""Your objective is to write a strategy to maximise your score in the tournament. Please write your strategy to behave {str(attitude).lower()}ly, as I have reason to believe that this will be most effective against your opponent."""
+  return f"""Your objective is to write a strategy to maximise your score in the tournament, taking into account the payoffs. Please write your strategy to behave {str(attitude).lower()}ly, as I have reason to believe that this will be most effective against your opponent."""
 
 
 def create_task_prompt() -> str:
@@ -68,18 +69,54 @@ def write_strategy(client: openai.OpenAI, temp: float, attitude: Attitude, game:
   return response.choices[0].message.content
 
 
+def test_strategy(strategy: str):
+  def is_safe_ast(node):
+    """Check if the AST node is considered safe."""
+    allowed_nodes = (
+      ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
+      ast.If, ast.And, ast.Or, ast.Not, ast.Eq, ast.Compare, ast.USub,
+      ast.List, ast.Tuple, ast.Num, ast.Str, ast.Constant,
+      ast.Attribute, ast.arg, ast.Name, ast.arguments,
+      ast.Call, ast.Store, ast.Index, ast.Subscript, ast.Load,
+      ast.Gt, ast.Lt, ast.GtE, ast.LtE, ast.Eq, ast.NotEq,
+      ast.Add, ast.Sub, ast.Mult, ast.Div,
+    )
+    # astor.to_source(node)
+    if not isinstance(node, allowed_nodes):
+      raise ValueError(f"Unsafe node type: {type(node).__name__}\nnode:\n{ast.unparse(node)}")
+    for child in ast.iter_child_nodes(node):
+      if not is_safe_ast(child):
+        raise ValueError(f"Unsafe node type: {type(child).__name__}\nnode:\n{ast.unparse(child)}")
+    return True
+
+  try:
+    parsed_ast = ast.parse(strategy)
+    for node in parsed_ast.body:
+      is_safe_ast(node)
+  except AttributeError as e:
+    print(f"AttributeError: {str(e)}")
+    raise ValueError(f"Strategy contains potentially unsafe constructs:\n{strategy}")
+  except ValueError as e:
+    print(f"ValueError: {str(e)}")
+    raise ValueError(f"Strategy contains potentially unsafe constructs:\n{strategy}")
+  except SyntaxError as e:
+    print(f"SyntaxError: {str(e)}")
+    raise ValueError("Strategy has syntax errors:\n{strategy}")
+
+
 def strip_code_markers(s):
   start_marker = "```python\n"
   end_marker = "\n```"
 
   if s.startswith(start_marker) and s.endswith(end_marker):
-      return s[len(start_marker):-len(end_marker)]
+    return s[len(start_marker):-len(end_marker)]
   return s
 
 
 def write_class(client: openai.OpenAI, attitude: Attitude, n: int, game: axl.Game) -> str:
   strategy = write_strategy(client, 0.7, attitude, game)
   strategy = strip_code_markers(strategy)
+  test_strategy(strategy)
 
   return f"""class {attitude}_{n}(LLM_Strategy):
   attitude = Attitude.{str(attitude).upper()}
@@ -88,15 +125,13 @@ def write_class(client: openai.OpenAI, attitude: Attitude, n: int, game: axl.Gam
   {strategy}"""
 
 
-CHAT_KEY = os.environ["OPENAI_API_KEY"]
-
 if __name__ == "__main__":
 
   client = openai.OpenAI(
-      api_key=CHAT_KEY
+      api_key=os.environ["OPENAI_API_KEY"]
     )
 
-  with open("output.py", "w") as f:
+  with open("output.py", "w", encoding="utf8") as f:
     f.write("""import axelrod as axl
 
 from common import Attitude, SocialDilemma
@@ -113,10 +148,10 @@ class LLM_Strategy(axl.player.Player):
       "inspects_source": False,
       "manipulates_source": False,
       "manipulates_state": False,
-  }\n\n""")
+  }""")
 
     for attitude in Attitude:
-      for n in range(1, 4):
-        output = write_class(client, attitude, n, Chicken()) + "\n\n"
+      for n in range(1, 2):
+        output = "\n\n" + write_class(client, attitude, n, Chicken())
         print(output)
         f.write(output)
