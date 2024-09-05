@@ -1,9 +1,10 @@
 import logging
 
+import argparse
 import ast
 import axelrod as axl
 import os
-from common import Attitude, Chicken, StagHunt
+from common import Attitude, get_game
 import openai
 
 from concordia.language_model.gpt_model import GptLanguageModel
@@ -11,7 +12,7 @@ from concordia.language_model.gpt_model import GptLanguageModel
 # Configure logging
 logging.basicConfig(filename="create_strategies.log", filemode="w", level=logging.INFO)
 
-logging.getLogger("openai._base_client").setLevel(logging.INFO)
+logging.getLogger("openai._base_client").setLevel(logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
@@ -74,12 +75,12 @@ def test_strategy(strategy: str):
     """Check if the AST node is considered safe."""
     allowed_nodes = (
       ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
-      ast.If, ast.And, ast.Or, ast.Not, ast.Eq, ast.Compare, ast.USub,
+      ast.If, ast.And, ast.Or, ast.Not, ast.Eq, ast.Compare, ast.USub, ast.IfExp, ast.In,
       ast.List, ast.Tuple, ast.Num, ast.Str, ast.Constant,
-      ast.Attribute, ast.arg, ast.Name, ast.arguments,
-      ast.Call, ast.Store, ast.Index, ast.Subscript, ast.Load,
+      ast.Attribute, ast.arg, ast.Name, ast.arguments, ast.keyword,
+      ast.Call, ast.Store, ast.Index, ast.Slice, ast.Subscript, ast.Load, ast.GeneratorExp, ast.comprehension, ast.ListComp,
       ast.Gt, ast.Lt, ast.GtE, ast.LtE, ast.Eq, ast.NotEq,
-      ast.Add, ast.Sub, ast.Mult, ast.Div,
+      ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Assign, ast.AugAssign, ast.Pow, ast.Mod,
     )
     # astor.to_source(node)
     if not isinstance(node, allowed_nodes):
@@ -101,57 +102,99 @@ def test_strategy(strategy: str):
     raise ValueError(f"Strategy contains potentially unsafe constructs:\n{strategy}")
   except SyntaxError as e:
     print(f"SyntaxError: {str(e)}")
-    raise ValueError("Strategy has syntax errors:\n{strategy}")
+    raise ValueError(f"Strategy has syntax errors:\n{strategy}")
 
 
 def strip_code_markers(s):
-  start_marker = "```python\n"
-  end_marker = "\n```"
+  s = s.replace("```python", "")
+  s = s.replace("```", "")
+  return s.strip()
 
-  if s.startswith(start_marker) and s.endswith(end_marker):
-    return s[len(start_marker):-len(end_marker)]
+def fix_common_mistakes(s):
+  s = s.replace("axl.D", "axl.Action.D")
+  s = s.replace("axl.C", "axl.Action.C")
+  s = s.replace("history.count(axl.Action.D)", "history.defections")
+  s = s.replace("history.count(axl.Action.C)", "history.cooperations")
+  s = s.replace("history.defections()", "history.defections")
+  s = s.replace("history.cooperations()", "history.cooperations")
+  s = s.replace("_random.rand()", "_random.random()")
   return s
 
 
-def write_class(client: openai.OpenAI, attitude: Attitude, n: int, game: axl.Game) -> str:
-  strategy = write_strategy(client, 0.7, attitude, game)
+def write_class(client: openai.OpenAI, attitude: Attitude, n: int, temp: float, game: axl.Game) -> str:
+  strategy = write_strategy(client, temp, attitude, game)
   strategy = strip_code_markers(strategy)
+  strategy = fix_common_mistakes(strategy)
   test_strategy(strategy)
+  strategy = add_indent(strategy)
 
   return f"""class {attitude}_{n}(LLM_Strategy):
   attitude = Attitude.{str(attitude).upper()}
   game = SocialDilemma.{str(game.name).upper()}
+  n = {n}
 
-  {strategy}"""
+@auto_super
+{strategy}"""
+
+
+def parse_arguments() -> argparse.Namespace:
+  """Parse command line arguments."""
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument(
+      "--n",
+      type=int,
+      required=True,
+      help="Number of strategies of each attitude to create")
+  parser.add_argument(
+      "--temperature",
+      type=float,
+      required=True,
+      help="Temperature of the LLM")
+  parser.add_argument(
+      "--game",
+      type=str,
+      required=True,
+      help="Name of the game to play")
+  parser.add_argument(
+      "--resume",
+      action="store_true",
+      help="If generation crashed, continue")
+
+  return parser.parse_args()
+
+def add_indent(text: str) -> str:
+    return "\n".join("  " + line for line in text.splitlines())
 
 
 if __name__ == "__main__":
+  args = parse_arguments()
 
   client = openai.OpenAI(
       api_key=os.environ["OPENAI_API_KEY"]
     )
 
-  with open("output.py", "w", encoding="utf8") as f:
-    f.write("""import axelrod as axl
+  if args.resume:
+    import inspect
+    import output
 
-from common import Attitude, SocialDilemma
+    player_classes = [
+        cls for name, cls in inspect.getmembers(output)
+        if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and cls != output.LLM_Strategy
+    ]
+    done_classes = [[c.attitude, c.n] for c in player_classes]
+  else:
+    done_classes = []
+
+    with open("output.py", "w", encoding="utf8") as f:
+      f.write("""import axelrod as axl
+
+from common import Attitude, auto_super, LLM_Strategy, SocialDilemma""")
 
 
-class LLM_Strategy(axl.player.Player):
-  def __repr__(self):
-    return self.__class__.__name__
+  strategies_to_create = [[a, n] for a in Attitude for n in range(1, 1 + args.n) if [a, n] not in done_classes]
+  game = get_game(args.game)
 
-  classifier = {
-      "memory_depth": 0,  # Memory-one Four-Vector = (p, p, p, p)
-      "stochastic": True,
-      "long_run_time": False,
-      "inspects_source": False,
-      "manipulates_source": False,
-      "manipulates_state": False,
-  }""")
-
-    for attitude in Attitude:
-      for n in range(1, 2):
-        output = "\n\n" + write_class(client, attitude, n, Chicken())
-        print(output)
-        f.write(output)
+  with open("output.py", "a", encoding="utf8") as f:
+    for a, n in strategies_to_create:
+      output = "\n\n" + write_class(client, a, n, args.temperature, game())
+      f.write(output)
