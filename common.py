@@ -52,31 +52,33 @@ class DPrisoner(axl.Game):
 
 def get_game(name: str) -> axl.Game:
   if name == "chicken":
-    return Chicken
+    return Chicken()
   elif name == "stag":
-    return StagHunt
+    return StagHunt()
   elif name == "prisoner":
-    return PrisonersDilemma
+    return PrisonersDilemma()
   elif name == "cprisoner":
-    return CPrisoner
+    return CPrisoner()
   elif name == "dprisoner":
-    return DPrisoner
+    return DPrisoner()
   else:
     assert False, "Game name not recognised"
 
 
-def auto_super(func):
-  @functools.wraps(func)
-  def wrapper(self, *args, **kwargs):
-    super_method = getattr(super(self.__class__, self), func.__name__, None)
-    if super_method:
-      super_method(*args, **kwargs)
-    return func(self, *args, **kwargs)
+def auto_update_score(strategy_method):
+  def wrapper(self, opponent):
+    self.update_score(opponent)
+    return strategy_method(self, opponent)
   return wrapper
 
 
 class LLM_Strategy(axl.player.Player):
-  def __repr__(self):
+  def __init__(self) -> None:
+    super().__init__()
+    self._score: int = 0
+    self._rounds_scored: int = 0
+
+  def __repr__(self) -> str:
     return self.__class__.__name__
 
   classifier = {
@@ -92,11 +94,11 @@ class LLM_Strategy(axl.player.Player):
   def score(self) -> int:
     return self._score
 
-  def strategy(self, opponent: axl.player.Player):
-    # Load the default game if not supplied by a tournament.
+  def update_score(self, opponent: axl.player.Player):
     game = self.match_attributes["game"]
-    if not self.history:
-      self._score: int = 0
-    else:
+    if len(self.history):
+      self._rounds_scored += 1
+      # assert len(self.history) == self._rounds_scored, "Only update the score once per game"
+      assert len(self.history) == self._rounds_scored, f"Only update the score once per game {len(self.history)}, {self._rounds_scored}"
       last_round = (self.history[-1], opponent.history[-1])
       self._score += game.score(last_round)[0]

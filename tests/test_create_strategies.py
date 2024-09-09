@@ -17,9 +17,8 @@ class TestPlayerClass(unittest.TestCase):
 
 def create_test(player_class):
   def test(self):
-    player = player_class()
-    axl.Match((player, axl.Random()), turns=20).play()
-    axl.Match((player, player), turns=20).play()
+    axl.Match((player_class(), axl.Random()), turns=20).play()
+    axl.Match((player_class(), player_class()), turns=20).play()
   return test
 
 # Get all classes from the module that are derived from axelrod.Player
