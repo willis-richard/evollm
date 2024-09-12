@@ -51,3 +51,13 @@ def parse_arguments() -> argparse.Namespace:
       "--resume", action="store_true", help="If generation crashed, continue")
 
   return parser.parse_args()
+
+
+# for _ in range(1000):  # Run for 1000 steps
+#     next(mp)
+#     if mp.fixation_check():
+#         break
+
+# # Analyze population state
+# population_makeup = mp.population_distribution()
+# print(f"After {mp.time_steps} steps, population makeup: {population_makeup}")

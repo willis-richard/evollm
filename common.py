@@ -8,6 +8,9 @@ class Attitude(StrEnum):
   COOPERATIVE = "Cooperative"
   AGGRESSIVE = "Aggressive"
 
+  def __repr__(self):
+      return self.value
+
 
 class SocialDilemma(StrEnum):
   CHICKEN = "Chicken"

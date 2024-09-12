@@ -1,5 +1,6 @@
 import logging
 
+from functools import partial
 import argparse
 import ast
 import axelrod as axl
@@ -192,12 +193,22 @@ def write_class(client: openai.OpenAI, attitude: Attitude, n: int, temp: float,
   game = SocialDilemma.{str(game.name).upper()}
   n = {n}
 
-@auto_update_score
+  @auto_update_score
 {strategy}"""
 
 
 def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
+  def restricted_float(x, lower: float, upper: float):
+    try:
+      x = float(x)
+    except ValueError:
+      raise argparse.ArgumentTypeError(f"{x} not a floating-point literal")
+
+    if x < lower or x > upper:
+      raise argparse.ArgumentTypeError(f"{x} not in range [{lower}, {upper}]")
+    return x
+
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument(
       "--llm",
@@ -211,14 +222,14 @@ def parse_arguments() -> argparse.Namespace:
       required=True,
       help="Number of strategies of each attitude to create")
   parser.add_argument(
-      "--temperature", type=float, required=True, help="Temperature of the LLM")
+      "--temp", type=partial(restricted_float, lower=0, upper=1), required=True, help="Temperature of the LLM")
   parser.add_argument(
       "--game", type=str, required=True, choices=["chicken", "stag", "prisoner"], help="Name of the game to play")
   parser.add_argument(
       "--rounds", type=int, default=20, help="Number of rounds in a match")
   parser.add_argument(
       "--noise",
-      type=float,
+      type=partial(restricted_float, lower=0, upper=0.5),
       default=0,
       help="Probability that an action is flipped")
   parser.add_argument(
@@ -245,7 +256,7 @@ def openai_message(client: openai.OpenAI, system: str, prompt: str,
       # model="gpt-3.5-turbo",
       model="chatgpt-4o-latest",
       messages=messages,
-      temperature=temp,
+      temp=temp,
   )
 
   return response.choices[0].message.content
@@ -255,10 +266,10 @@ def anthropic_message(client: anthropic.Anthropic, system: str, prompt: str,
                       temp: float) -> str:
   message = client.messages.create(
       # model="claude-3-opus-20240229",
-      # model="claude-3-5-sonnet-20240620",
-      model="claude-3-haiku-20240307",
+      model="claude-3-5-sonnet-20240620",
+      # model="claude-3-haiku-20240307",
       max_tokens=1000,
-      temperature=temp,
+      temp=temp,
       system=system,
       messages=[{
           "role": "user",
@@ -294,7 +305,7 @@ if __name__ == "__main__":
     with open("output.py", "w", encoding="utf8") as f:
       f.write("""import axelrod as axl
 
-from common import Attitude, auto_super, LLM_Strategy, SocialDilemma""")
+from common import Attitude, auto_update_score, LLM_Strategy, SocialDilemma""")
 
   strategies_to_create: list[tuple[Attitude,
                                    int]] = [(a, n)
@@ -305,6 +316,6 @@ from common import Attitude, auto_super, LLM_Strategy, SocialDilemma""")
 
   with open("output.py", "a", encoding="utf8") as f:
     for attitude, n in strategies_to_create:
-      strategy = "\n\n" + write_class(client, attitude, n, args.temperature,
+      strategy = "\n\n" + write_class(client, attitude, n, args.temp,
                                       game, args.rounds, args.noise)
       f.write(strategy)
