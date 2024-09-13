@@ -1,5 +1,7 @@
 import logging
 
+import textwrap
+from io import TextIOWrapper
 from functools import partial
 import argparse
 import ast
@@ -8,8 +10,7 @@ import os
 from common import Attitude, get_game
 import openai
 import anthropic
-
-from concordia.language_model.gpt_model import GptLanguageModel
+import random
 
 # Configure logging
 logging.basicConfig(
@@ -19,10 +20,11 @@ logging.getLogger("openai._base_client").setLevel(logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def create_game_prompt(game: axl.Game, rounds: int, noise: float) -> str:
+def create_task_prompt(game: axl.Game, rounds: int, noise: float | None) -> str:
   R, P, S, T = game.RPST()
+  noise_str = " Matches have noisy actions: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise is not None else ""
 
-  game_prompt = f"""Your task is to write a strategy to play an iterated normal-form game with the following payoff matrix:
+  return f"""Your task is to write a strategy to play an iterated normal-form game with the following payoff matrix:
 
 |   | C   | D   |
 | C | {R},{R} | {S},{T} |
@@ -33,20 +35,21 @@ If you play C and your opponent plays D, you score {S} and they score {T}.
 If you play D and your opponent plays C, you score {T} and they score {S}.
 If you play D and your opponent plays D, you both score {P}.
 
-Each match lasts {rounds}."""
-
-  if noise != 0:
-    game_prompt += """ Matches have noisy actions: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped. You do not need to implement the noise, just be aware that your action and/or that of your opponent may not be the one chosen."""
-
-  return game_prompt
+Each match lasts {rounds}.{noise_str}"""
 
 
-def create_attitude_prompt(attitude: Attitude) -> str:
-  return f"""Your objective is to write a strategy to maximise your score in the tournament, taking into account the payoffs. Please write your strategy to behave {str(attitude).lower()}ly, as I have reason to believe that this will be most effective against your opponent."""
+def create_strategy_prompt() -> str:
+  return f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. Write the strategy descriptions in natural language only."""
 
 
-def create_task_prompt() -> str:
-  return """The tournament uses the Axelrod python library. Your response should only include the python code for the strategy function, which has the following signature:
+def create_algorithm_prompt(strategy: str, noise: float | None) -> str:
+  noise_str = "You do not need to implement the noise, as this is handled by the tournament implementation. " if noise is not None else ""
+
+  return f"""Implement the following strategy description as an algorithm.
+
+{strategy}
+
+The tournament uses the Axelrod python library. Your response should only include the python code for the strategy function, which has the following signature:
 
 def strategy(self, opponent: axl.player.Player) -> axl.Action:
 
@@ -60,80 +63,66 @@ Some attributes that you may wish to use are:
 - self.score or opponent.score returns the score achieved so far.
 - self._random is a numpy.random.RandomGenerator instance which you should use if you wish to utilise randomness.
 
-Begin your response by repeating the strategy function signature.
+{noise_str}Begin your response by repeating the strategy function signature.
 """
 
 
-def write_strategy(client: openai.OpenAI | anthropic.Anthropic, temp: float,
-                   attitude: Attitude, game: axl.Game, rounds: int,
-                   noise: float) -> str:
+def generate_strategies(client: openai.OpenAI | anthropic.Anthropic,
+                        temp: float, game: axl.Game,
+                        rounds: int, noise: float | None) -> str:
 
-  system = "You only include python code in your response."
-  prompt = create_game_prompt(game, rounds,
-                              noise) + "\n\n" + create_attitude_prompt(
-                                  attitude) + "\n\n" + create_task_prompt()
+  system = "You are an AI assistant with expertise in game theory. Your task is to create strategies to maximise your score in an iterated normal-form game tournament, taking into account the payoffs."
+  prompt = create_task_prompt(game, rounds,
+                              noise) + "\n\n" + create_strategy_prompt()
 
-  if isinstance(client, openai.OpenAI):
-    return openai_message(client, system, prompt, temp)
-  elif isinstance(client, anthropic.Anthropic):
-    return anthropic_message(client, system, prompt, temp)
-  assert False, "Unknown client"
-  return ""
+  strategies = {}
+  attitudes = [a for a in Attitude]
+  random.shuffle(attitudes)
+
+  prompt += "\n\n" + f"First, write the {attitudes[0].lower()} strategy."
+  messages = [{"role": "user", "content": prompt}]
+  strategies[attitudes[0]] = get_response(client, system, messages, temp)
+
+  messages += [{
+      "role": "assistant",
+      "content": strategies[attitudes[0]]
+  }]
+  messages += [{
+      "role": "user",
+      "content": f"Now, write the {attitudes[1].lower()} strategy"
+  }]
+  strategies[attitudes[1]] = get_response(client, system, messages,
+                                          temp)
+
+  messages += [{
+      "role": "assistant",
+      "content": strategies[attitudes[1]]
+  }]
+  messages += [{"role": "user", "content": f"Now, write the {attitudes[2].lower()} strategy"}]
+  strategies[attitudes[2]] = get_response(client, system, messages, temp)
+
+  return strategies
 
 
-def test_strategy(strategy: str):
+def test_algorithm(algorithm: str):
 
   def is_safe_ast(node):
     """Check if the AST node is considered safe."""
+    # yapf: disable
     allowed_nodes = (
-        ast.FunctionDef,
-        ast.Return,
-        ast.UnaryOp,
-        ast.BoolOp,
-        ast.BinOp,
-        ast.If,
-        ast.And,
-        ast.Or,
-        ast.Not,
-        ast.Eq,
-        ast.Compare,
-        ast.USub,
-        ast.IfExp,
-        ast.In,
-        ast.List,
-        ast.Tuple,
-        ast.Num,
-        ast.Str,
-        ast.Constant,
-        ast.Attribute,
-        ast.arg,
-        ast.Name,
-        ast.arguments,
-        ast.keyword,
-        ast.Call,
-        ast.Store,
-        ast.Index,
-        ast.Slice,
-        ast.Subscript,
-        ast.Load,
-        ast.GeneratorExp,
-        ast.comprehension,
-        ast.ListComp,
-        ast.Gt,
-        ast.Lt,
-        ast.GtE,
-        ast.LtE,
-        ast.Eq,
-        ast.NotEq,
-        ast.Add,
-        ast.Sub,
-        ast.Mult,
-        ast.Div,
-        ast.Assign,
-        ast.AugAssign,
-        ast.Pow,
-        ast.Mod,
+        ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
+        ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
+        ast.Compare, ast.USub, ast.In,
+        ast.List, ast.Tuple, ast.Num, ast.Str, ast.Constant, ast.Attribute,
+        ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr,
+        ast.Call, ast.Store, ast.Index, ast.Slice, ast.Subscript, ast.Load,
+        ast.GeneratorExp, ast.comprehension, ast.ListComp,
+        ast.Gt, ast.Lt, ast.GtE, ast.LtE, ast.Eq, ast.NotEq,
+        ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv,
+        ast.Assign, ast.AugAssign, ast.Pow, ast.Mod,
     )
+    # yapf: enable
+
     # astor.to_source(node)
     if not isinstance(node, allowed_nodes):
       raise ValueError(
@@ -147,20 +136,22 @@ def test_strategy(strategy: str):
     return True
 
   try:
-    parsed_ast = ast.parse(strategy)
+    parsed_ast = ast.parse(algorithm)
     for node in parsed_ast.body:
       is_safe_ast(node)
   except AttributeError as e:
     print(f"AttributeError: {str(e)}")
     raise ValueError(
-        f"Strategy contains potentially unsafe constructs:\n{strategy}")
+        f"Algorithm contains potentially unsafe constructs:\n{algorithm}"
+    ) from e
   except ValueError as e:
     print(f"ValueError: {str(e)}")
     raise ValueError(
-        f"Strategy contains potentially unsafe constructs:\n{strategy}")
+        f"Algorithm contains potentially unsafe constructs:\n{algorithm}"
+    ) from e
   except SyntaxError as e:
     print(f"SyntaxError: {str(e)}")
-    raise ValueError(f"Strategy has syntax errors:\n{strategy}")
+    raise ValueError(f"Algorithm has syntax errors:\n{algorithm}") from e
 
 
 def strip_code_markers(s):
@@ -180,25 +171,67 @@ def fix_common_mistakes(s):
   return s
 
 
-def write_class(client: openai.OpenAI, attitude: Attitude, n: int, temp: float,
-                game: axl.Game, rounds: int, noise: float) -> str:
-  strategy = write_strategy(client, temp, attitude, game, rounds, noise)
-  strategy = strip_code_markers(strategy)
-  strategy = fix_common_mistakes(strategy)
-  test_strategy(strategy)
-  strategy = add_indent(strategy)
+def add_indent(text: str) -> str:
+  return "\n".join("  " + line for line in text.splitlines())
 
-  return f"""class {attitude}_{n}(LLM_Strategy):
+
+def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
+                       strategy: str, game: axl.Game, rounds: int,
+                       noise: float | None) -> str:
+
+  system = "You are an AI assistant with expertise in game theory and programming. Your task is to implement the strategy description provided by the user as an algorithm. You only include python code in your response."
+  prompt = create_task_prompt(
+      game, rounds, noise) + "\n\n" + create_algorithm_prompt(strategy, noise)
+
+  messages = [{"role": "user", "content": prompt}]
+
+  algorithm = get_response(client, system, messages, 0)
+
+  algorithm = strip_code_markers(algorithm)
+  algorithm = fix_common_mistakes(algorithm)
+  test_algorithm(algorithm)
+  algorithm = add_indent(algorithm)
+  return algorithm
+
+
+def format_comment(text, width=78):
+    # Wrap the text to the specified width
+    wrapped = textwrap.wrap(text, width=width)
+    # Add "# " prefix to each line and join them
+    return "\n".join("# " + line for line in wrapped)
+
+
+def write_class(description: str, n: int, attitude: Attitude, game: axl.Game,
+                rounds: int, noise: float | None, algorithm: str) -> str:
+  return f"""{format_comment(description)}
+
+class {attitude}_{n}(LLM_Strategy):
+  n = {n}
   attitude = Attitude.{str(attitude).upper()}
   game = SocialDilemma.{str(game.name).upper()}
-  n = {n}
+  rounds = {rounds}
+  noise = {noise}
 
   @auto_update_score
-{strategy}"""
+{algorithm}"""
+
+
+def generate_class(text_file: TextIOWrapper, client: openai.OpenAI, n: int,
+                   temp: float, game: axl.Game, rounds: int, noise: float):
+  strategies = generate_strategies(client, temp, game, rounds, noise)
+  algorithms = {}
+
+  for a in Attitude:
+    algorithms[a] = generate_algorithm(client, strategies[a], game, rounds,
+                                       noise)
+
+  for a in Attitude:
+    text_file.write("\n\n" + write_class(strategies[a], n, a, game, rounds, noise, algorithms[a]))
 
 
 def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
+
   def restricted_float(x, lower: float, upper: float):
     try:
       x = float(x)
@@ -222,15 +255,22 @@ def parse_arguments() -> argparse.Namespace:
       required=True,
       help="Number of strategies of each attitude to create")
   parser.add_argument(
-      "--temp", type=partial(restricted_float, lower=0, upper=1), required=True, help="Temperature of the LLM")
+      "--temp",
+      type=partial(restricted_float, lower=0, upper=1),
+      required=True,
+      help="Temperature of the LLM")
   parser.add_argument(
-      "--game", type=str, required=True, choices=["chicken", "stag", "prisoner"], help="Name of the game to play")
+      "--game",
+      type=str,
+      required=True,
+      choices=["chicken", "stag", "prisoner"],
+      help="Name of the game to play")
   parser.add_argument(
       "--rounds", type=int, default=20, help="Number of rounds in a match")
   parser.add_argument(
       "--noise",
       type=partial(restricted_float, lower=0, upper=0.5),
-      default=0,
+      default=None,
       help="Probability that an action is flipped")
   parser.add_argument(
       "--resume", action="store_true", help="If generation crashed, continue")
@@ -238,25 +278,18 @@ def parse_arguments() -> argparse.Namespace:
   return parser.parse_args()
 
 
-def add_indent(text: str) -> str:
-  return "\n".join("  " + line for line in text.splitlines())
-
-
 def openai_message(client: openai.OpenAI, system: str, prompt: str,
                    temp: float) -> str:
   messages = [{
       "role": "system",
       "content": system
-  }, {
-      "role": "user",
-      "content": prompt
-  }]
+  }] + prompt
 
   response = client.chat.completions.create(
       # model="gpt-3.5-turbo",
       model="chatgpt-4o-latest",
       messages=messages,
-      temp=temp,
+      temperature=temp,
   )
 
   return response.choices[0].message.content
@@ -264,21 +297,25 @@ def openai_message(client: openai.OpenAI, system: str, prompt: str,
 
 def anthropic_message(client: anthropic.Anthropic, system: str, prompt: str,
                       temp: float) -> str:
-  message = client.messages.create(
+  response = client.messages.create(
       # model="claude-3-opus-20240229",
       model="claude-3-5-sonnet-20240620",
       # model="claude-3-haiku-20240307",
       max_tokens=1000,
-      temp=temp,
+      temperature=temp,
       system=system,
-      messages=[{
-          "role": "user",
-          "content": [{
-              "type": "text",
-              "text": prompt
-          }]
-      }])
-  return message.content[0].text
+      messages=prompt)
+  return response.content[0].text
+
+
+def get_response(client: openai.OpenAI | anthropic.Anthropic, system: str,
+                 messages: list[dict[str, str]], temp: float) -> str:
+  if isinstance(client, openai.OpenAI):
+    return openai_message(client, system, messages, temp)
+  elif isinstance(client, anthropic.Anthropic):
+    return anthropic_message(client, system, messages, temp)
+  assert False, "Unknown client"
+  return ""
 
 
 if __name__ == "__main__":
@@ -298,7 +335,7 @@ if __name__ == "__main__":
         if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and
         cls != output.LLM_Strategy
     ]
-    done_classes = [(c.attitude, c.n) for c in player_classes]
+    done_classes = set([c.n for c in player_classes])
   else:
     done_classes = []
 
@@ -307,15 +344,11 @@ if __name__ == "__main__":
 
 from common import Attitude, auto_update_score, LLM_Strategy, SocialDilemma""")
 
-  strategies_to_create: list[tuple[Attitude,
-                                   int]] = [(a, n)
-                                            for a in Attitude
-                                            for n in range(1, 1 + args.n)
-                                            if (a, n) not in done_classes]
+  strategies_to_create: list[int] = [n for n in range(1, 1 + args.n)
+                                     if n not in done_classes]
   game = get_game(args.game)
 
   with open("output.py", "a", encoding="utf8") as f:
-    for attitude, n in strategies_to_create:
-      strategy = "\n\n" + write_class(client, attitude, n, args.temp,
-                                      game, args.rounds, args.noise)
-      f.write(strategy)
+    for n in strategies_to_create:
+      generate_class(f, client, n, args.temp, game,
+                     args.rounds, args.noise)

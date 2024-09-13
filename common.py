@@ -4,12 +4,12 @@ import functools
 
 
 class Attitude(StrEnum):
-  SELFISH = "Selfish"
-  COOPERATIVE = "Cooperative"
   AGGRESSIVE = "Aggressive"
+  COOPERATIVE = "Cooperative"
+  NEUTRAL = "Neutral"
 
   def __repr__(self):
-      return self.value
+    return self.value
 
 
 class SocialDilemma(StrEnum):
