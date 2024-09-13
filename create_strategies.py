@@ -7,7 +7,8 @@ import argparse
 import ast
 import axelrod as axl
 import os
-from common import Attitude, get_game
+from common import Attitude
+import common
 import openai
 import anthropic
 import random
@@ -229,55 +230,6 @@ def generate_class(text_file: TextIOWrapper, client: openai.OpenAI, n: int,
     text_file.write("\n\n" + write_class(strategies[a], n, a, game, rounds, noise, algorithms[a]))
 
 
-def parse_arguments() -> argparse.Namespace:
-  """Parse command line arguments."""
-
-  def restricted_float(x, lower: float, upper: float):
-    try:
-      x = float(x)
-    except ValueError:
-      raise argparse.ArgumentTypeError(f"{x} not a floating-point literal")
-
-    if x < lower or x > upper:
-      raise argparse.ArgumentTypeError(f"{x} not in range [{lower}, {upper}]")
-    return x
-
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument(
-      "--llm",
-      type=str,
-      required=True,
-      choices=["openai", "anthropic"],
-      help="Which LLM API to use")
-  parser.add_argument(
-      "--n",
-      type=int,
-      required=True,
-      help="Number of strategies of each attitude to create")
-  parser.add_argument(
-      "--temp",
-      type=partial(restricted_float, lower=0, upper=1),
-      required=True,
-      help="Temperature of the LLM")
-  parser.add_argument(
-      "--game",
-      type=str,
-      required=True,
-      choices=["chicken", "stag", "prisoner"],
-      help="Name of the game to play")
-  parser.add_argument(
-      "--rounds", type=int, default=20, help="Number of rounds in a match")
-  parser.add_argument(
-      "--noise",
-      type=partial(restricted_float, lower=0, upper=0.5),
-      default=None,
-      help="Probability that an action is flipped")
-  parser.add_argument(
-      "--resume", action="store_true", help="If generation crashed, continue")
-
-  return parser.parse_args()
-
-
 def openai_message(client: openai.OpenAI, system: str, prompt: str,
                    temp: float) -> str:
   messages = [{
@@ -318,6 +270,45 @@ def get_response(client: openai.OpenAI | anthropic.Anthropic, system: str,
   return ""
 
 
+def parse_arguments() -> argparse.Namespace:
+  """Parse command line arguments."""
+
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument(
+      "--llm",
+      type=str,
+      required=True,
+      choices=["openai", "anthropic"],
+      help="Which LLM API to use")
+  parser.add_argument(
+      "--n",
+      type=int,
+      required=True,
+      help="Number of strategies of each attitude to create")
+  parser.add_argument(
+      "--temp",
+      type=common.temp_arg,
+      required=True,
+      help="Temperature of the LLM")
+  parser.add_argument(
+      "--game",
+      type=str,
+      required=True,
+      choices=["chicken", "stag", "prisoner"],
+      help="Name of the game to play")
+  parser.add_argument(
+      "--rounds", type=int, default=20, help="Number of rounds in a match")
+  parser.add_argument(
+      "--noise",
+      type=common.noise_arg,
+      default=None,
+      help="Probability that an action is flipped")
+  parser.add_argument(
+      "--resume", action="store_true", help="If generation crashed, continue")
+
+  return parser.parse_args()
+
+
 if __name__ == "__main__":
   args = parse_arguments()
 
@@ -346,7 +337,7 @@ from common import Attitude, auto_update_score, LLM_Strategy, SocialDilemma""")
 
   strategies_to_create: list[int] = [n for n in range(1, 1 + args.n)
                                      if n not in done_classes]
-  game = get_game(args.game)
+  game = common.get_game(args.game)
 
   with open("output.py", "a", encoding="utf8") as f:
     for n in strategies_to_create:

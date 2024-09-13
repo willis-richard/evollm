@@ -1,16 +1,16 @@
 """TODO: docstring"""
 
 import inspect
+import argparse
 import logging
-import os
 from collections import defaultdict
+import importlib
 
 import axelrod as axl
 import numpy as np
 import pandas as pd
 
 import common
-import output
 
 # Configure logging
 logging.basicConfig(filename="llm.log", filemode="w", level=logging.INFO)
@@ -19,12 +19,9 @@ logging.getLogger("openai._base_client").setLevel(logging.WARN)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def analyse_by_genome(attribute_list: list[list[int | float]], players: list[axl.Player]) -> dict[tuple[common.Attitude, common.Attitude], float]:
-  # Get the normalised cooperation matrix
-  coop_matrix = np.array(attribute_list)
-
-  # Initialize a defaultdict to store cooperation rates
-  coop_rates = defaultdict(list)
+def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) -> dict[tuple[common.Attitude, common.Attitude], float]:
+  data_matrix = np.array(data)
+  rates = defaultdict(list)
 
   # Iterate through the upper triangle of the cooperation matrix
   for i, p1 in enumerate(players):
@@ -32,39 +29,67 @@ def analyse_by_genome(attribute_list: list[list[int | float]], players: list[axl
       j = i + x
       if i == j:
         # For self-interactions, only add once
-        coop_rates[(p1.attitude, p2.attitude)].append(coop_matrix[i][j])
+        rates[(p1.attitude, p2.attitude)].append(data_matrix[i][j])
       else:
         # For interactions between different players, add both directions
-        coop_rates[(p1.attitude, p2.attitude)].append(coop_matrix[i][j])
-        coop_rates[(p2.attitude, p1.attitude)].append(coop_matrix[j][i])
+        rates[(p1.attitude, p2.attitude)].append(data_matrix[i][j])
+        rates[(p2.attitude, p1.attitude)].append(data_matrix[j][i])
 
-  # Calculate average cooperation rates
-  avg_coop = {k: np.mean(v) for k, v in coop_rates.items()}
-
-  s = pd.Series(avg_coop)
+  # Calculate average rates
+  s = pd.Series({k: np.mean(v) for k, v in rates.items()})
   s.index = pd.MultiIndex.from_tuples(s.index, names=["index", "column"])
   df = s.unstack(level="column")
 
   return df
 
+
+def parse_arguments() -> argparse.Namespace:
+  """Parse command line arguments."""
+
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument(
+      "--algo",
+      type=str,
+      required=True,
+      help="Name of the python module with the LLM algorithms")
+  parser.add_argument(
+      "--game",
+      type=str,
+      required=True,
+      choices=["chicken", "stag", "prisoner"],
+      help="Name of the game to play")
+  parser.add_argument(
+      "--rounds", type=int, default=20, help="Number of rounds in a match")
+  parser.add_argument(
+      "--noise",
+      type=common.noise_arg,
+      default=None,
+      help="Probability that an action is flipped")
+
+  return parser.parse_args()
+
+
+
 if __name__ == "__main__":
+  args = parse_arguments()
+
+  module = importlib.import_module(args.algo)
+
+  player_classes = [
+    cls for name, cls in inspect.getmembers(module)
+    if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
+  ]
   # N.B. use Player() rather Player, aka instances not classes
   # otherwise gives the error "Player.clone() missing 1 required positional argument: 'self'"
-  player_classes = [
-    cls for name, cls in inspect.getmembers(output)
-    if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and cls != output.LLM_Strategy
-  ]
-  # player_classes = [p for p in player_classes if "9" in p.__name__ or "8" in p.__name__]
-  player_classes = [p for p in player_classes]
   players = [p() for p in player_classes]
 
   tournament = axl.Tournament(
     players,
-    game=common.PrisonersDilemma(),
-    turns=20,
+    game=common.get_game(args.game),
+    turns=args.rounds,
     repetitions=1,
     seed=1,
-    noise=0.1,
+    noise=args.noise,
   )
 
   results = tournament.play(processes=4, filename="results_full.txt")

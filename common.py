@@ -1,6 +1,21 @@
+import argparse
 import axelrod as axl
 from enum import StrEnum
-import functools
+from functools import partial
+
+
+def restricted_float(x, lower: float, upper: float):
+  try:
+    x = float(x)
+  except ValueError:
+    raise argparse.ArgumentTypeError(f"{x} not a floating-point literal")
+
+  if x < lower or x > upper:
+    raise argparse.ArgumentTypeError(f"{x} not in range [{lower}, {upper}]")
+  return x
+
+temp_arg = partial(restricted_float, lower=0, upper=1)
+noise_arg = partial(restricted_float, lower=0, upper=0.5)
 
 
 class Attitude(StrEnum):
@@ -53,6 +68,13 @@ class DPrisoner(axl.Game):
     super().__init__(r=3, s=0, t=5, p=2)
 
 
+def auto_update_score(strategy_method):
+  def wrapper(self, opponent):
+    self.update_score(opponent)
+    return strategy_method(self, opponent)
+  return wrapper
+
+
 def get_game(name: str) -> axl.Game:
   if name == "chicken":
     return Chicken()
@@ -66,13 +88,6 @@ def get_game(name: str) -> axl.Game:
     return DPrisoner()
   else:
     assert False, "Game name not recognised"
-
-
-def auto_update_score(strategy_method):
-  def wrapper(self, opponent):
-    self.update_score(opponent)
-    return strategy_method(self, opponent)
-  return wrapper
 
 
 class LLM_Strategy(axl.player.Player):
