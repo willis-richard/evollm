@@ -63,6 +63,7 @@ Some attributes that you may wish to use are:
 - the histories have properties history.cooperations and history.defections which return a count of the total number of cooperate or defect actions played.
 - self.score or opponent.score returns the score achieved so far.
 - self._random is a numpy.random.RandomGenerator instance which you should use if you wish to utilise randomness.
+- if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
 
 {noise_str}Begin your response by repeating the strategy function signature.
 """
@@ -113,7 +114,7 @@ def test_algorithm(algorithm: str):
     allowed_nodes = (
         ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
         ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
-        ast.Compare, ast.USub, ast.In,
+        ast.Compare, ast.USub, ast.In, ast.Is, ast.For,
         ast.List, ast.Tuple, ast.Num, ast.Str, ast.Constant, ast.Attribute,
         ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr,
         ast.Call, ast.Store, ast.Index, ast.Slice, ast.Subscript, ast.Load,
@@ -209,7 +210,7 @@ def write_class(description: str, n: int, attitude: Attitude, game: axl.Game,
 class {attitude}_{n}(LLM_Strategy):
   n = {n}
   attitude = Attitude.{str(attitude).upper()}
-  game = SocialDilemma.{str(game.name).upper()}
+  game = '{game.name}'
   rounds = {rounds}
   noise = {noise}
 
@@ -294,7 +295,6 @@ def parse_arguments() -> argparse.Namespace:
       "--game",
       type=str,
       required=True,
-      choices=["chicken", "stag", "prisoner"],
       help="Name of the game to play")
   parser.add_argument(
       "--rounds", type=int, default=20, help="Number of rounds in a match")
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     with open("output.py", "w", encoding="utf8") as f:
       f.write("""import axelrod as axl
 
-from common import Attitude, auto_update_score, LLM_Strategy, SocialDilemma""")
+from common import Attitude, auto_update_score, LLM_Strategy""")
 
   strategies_to_create: list[int] = [n for n in range(1, 1 + args.n)
                                      if n not in done_classes]

@@ -27,45 +27,32 @@ class Attitude(StrEnum):
     return self.value
 
 
-class SocialDilemma(StrEnum):
-  CHICKEN = "Chicken"
-  PRISONER = "Prisoner"
-  STAG = "Stag"
-
-
 class Chicken(axl.Game):
-  name = SocialDilemma.CHICKEN
+  name = "chicken"
 
   def __init__(self):
     super().__init__(r=3, s=1, t=4, p=0)
 
 
 class PrisonersDilemma(axl.Game):
-  name = SocialDilemma.PRISONER
+  name = "prisoner"
 
   def __init__(self):
     super().__init__(r=3, s=0, t=4, p=1)
 
 
 class StagHunt(axl.Game):
-  name = SocialDilemma.STAG
+  name = "stag"
 
   def __init__(self):
     super().__init__(r=4, s=0, t=3, p=1)
 
 
-class CPrisoner(axl.Game):
-  name = SocialDilemma.PRISONER
+class Classic(axl.Game):
+  name = "classic"
 
   def __init__(self):
-    super().__init__(r=4, s=0, t=5, p=1)
-
-
-class DPrisoner(axl.Game):
-  name = SocialDilemma.PRISONER
-
-  def __init__(self):
-    super().__init__(r=3, s=0, t=5, p=2)
+    super().__init__(r=3, s=0, t=5, p=1)
 
 
 def auto_update_score(strategy_method):
@@ -82,10 +69,8 @@ def get_game(name: str) -> axl.Game:
     return StagHunt()
   elif name == "prisoner":
     return PrisonersDilemma()
-  elif name == "cprisoner":
-    return CPrisoner()
-  elif name == "dprisoner":
-    return DPrisoner()
+  elif name == "classic":
+    return Classic()
   else:
     assert False, "Game name not recognised"
 
@@ -114,9 +99,15 @@ class LLM_Strategy(axl.player.Player):
 
   def update_score(self, opponent: axl.player.Player):
     game = self.match_attributes["game"]
+
     if len(self.history):
       self._rounds_scored += 1
-      # assert len(self.history) == self._rounds_scored, "Only update the score once per game"
-      assert len(self.history) == self._rounds_scored, f"Only update the score once per game {len(self.history)}, {self._rounds_scored}"
+      assert len(self.history) == self._rounds_scored, "Only update the score once per game"
       last_round = (self.history[-1], opponent.history[-1])
       self._score += game.score(last_round)[0]
+      # Hack for running against non-LLM_Strategies
+      if not isinstance(opponent, LLM_Strategy):
+        opponent.score += game.score(last_round)[1]
+    else:
+      if not isinstance(opponent, LLM_Strategy):
+        opponent.score = 0

@@ -1,31 +1,43 @@
 import inspect
-import output
+import importlib
 import common
+from common import Attitude
 
 import axelrod as axl
 
-player_classes = [
-  cls for name, cls in inspect.getmembers(output)
-  if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and cls != output.LLM_Strategy
-]
 
-class Selfish(common.LLM_Strategy):
-  strategies = [p for p in player_classes if "Selfish" in p.__name__]
+def create_classes(module_name: str, suffix: str = "", population: list[str] | None = None) -> tuple[type[common.LLM_Strategy], type[common.LLM_Strategy], type[common.LLM_Strategy]]:
+  module = importlib.import_module(module_name)
 
-  def strategy(self, opponent: axl.player.Player) -> axl.Action:
-    random_class = self._random.choice(self.__class__.strategies)
-    return random_class.strategy(self, opponent)
+  player_classes = [
+    cls for name, cls in inspect.getmembers(module)
+    if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
+  ]
 
-class Cooperative(common.LLM_Strategy):
-  strategies = [p for p in player_classes if "Cooperative" in p.__name__]
+  if population is not None:
+    player_classes = [p for p in player_classes if p.__name__ in population]
 
-  def strategy(self, opponent: axl.player.Player) -> axl.Action:
-    random_class = self._random.choice(self.__class__.strategies)
-    return random_class.strategy(self, opponent)
+  class StrategySampler(common.LLM_Strategy):
+    def strategy(self, opponent: axl.player.Player) -> axl.Action:
+      # init is called before every match (or reset and clone, which call init)
+      if not self.history:
+        random_class = self._random.choice(self.__class__.strategies)
+        self.selected_strategy = random_class.strategy.__get__(self, StrategySampler)
+      return self.selected_strategy(opponent)
 
-class Aggressive(common.LLM_Strategy):
-  strategies = [p for p in player_classes if "Aggressive" in p.__name__]
+  class Aggressive(StrategySampler):
+    attitude = Attitude.AGGRESSIVE
 
-  def strategy(self, opponent: axl.player.Player) -> axl.Action:
-    random_class = self._random.choice(self.__class__.strategies)
-    return random_class.strategy(self, opponent)
+    strategies = [p for p in player_classes if f"Aggressive{suffix}" in p.__name__]
+
+  class Cooperative(StrategySampler):
+    attitude = Attitude.COOPERATIVE
+
+    strategies = [p for p in player_classes if f"Cooperative{suffix}" in p.__name__]
+
+  class Neutral(StrategySampler):
+    attitude = Attitude.NEUTRAL
+
+    strategies = [p for p in player_classes if f"Neutral{suffix}" in p.__name__]
+
+  return Aggressive, Cooperative, Neutral

@@ -5,6 +5,7 @@ import argparse
 import logging
 from collections import defaultdict
 import importlib
+import json
 
 import axelrod as axl
 import numpy as np
@@ -56,7 +57,6 @@ def parse_arguments() -> argparse.Namespace:
       "--game",
       type=str,
       required=True,
-      choices=["chicken", "stag", "prisoner"],
       help="Name of the game to play")
   parser.add_argument(
       "--rounds", type=int, default=20, help="Number of rounds in a match")
@@ -65,6 +65,8 @@ def parse_arguments() -> argparse.Namespace:
       type=common.noise_arg,
       default=None,
       help="Probability that an action is flipped")
+  parser.add_argument(
+      "--population", action="store_true", help="Filter strategies by this population")
 
   return parser.parse_args()
 
@@ -79,6 +81,12 @@ if __name__ == "__main__":
     cls for name, cls in inspect.getmembers(module)
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
+
+  if args.population:
+    with open("results/population.json", "r") as f:
+      population = json.load(f)
+    player_classes = [p for p in player_classes if p.__name__ in population]
+
   # N.B. use Player() rather Player, aka instances not classes
   # otherwise gives the error "Player.clone() missing 1 required positional argument: 'self'"
   players = [p() for p in player_classes]
