@@ -66,7 +66,7 @@ def parse_arguments() -> argparse.Namespace:
       default=None,
       help="Probability that an action is flipped")
   parser.add_argument(
-      "--population", action="store_true", help="Filter strategies by this population")
+      "--population", action="store_true", help="Filter strategies by the population")
 
   return parser.parse_args()
 

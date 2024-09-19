@@ -40,17 +40,17 @@ Each match lasts {rounds}.{noise_str}"""
 
 
 def create_strategy_prompt() -> str:
-  return f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. Write the strategy descriptions in natural language only."""
+  return f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should take into account the game payoffs and be robust against a range of opponent behaviours while remaining simple enough to be actionable. Write the strategy descriptions in natural language only."""
 
 
 def create_algorithm_prompt(strategy: str, noise: float | None) -> str:
   noise_str = "You do not need to implement the noise, as this is handled by the tournament implementation. " if noise is not None else ""
 
-  return f"""Implement the following strategy description as an algorithm.
+  return f"""Implement the following strategy description as an algorithm using python 3.11.
 
 {strategy}
 
-The tournament uses the Axelrod python library. Your response should only include the python code for the strategy function, which has the following signature:
+The tournament uses the Axelrod library. Your response should only include the python code for the strategy function, which has the following signature:
 
 def strategy(self, opponent: axl.player.Player) -> axl.Action:
 
@@ -61,7 +61,7 @@ import axelrod as axl
 Some attributes that you may wish to use are:
 - self.history or opponent.history return a List[axl.Action] of the moves played so far.
 - the histories have properties history.cooperations and history.defections which return a count of the total number of cooperate or defect actions played.
-- self.score or opponent.score returns the score achieved so far.
+- self.score or opponent.score returns the total score achieved so far in the match.
 - self._random is a numpy.random.RandomGenerator instance which you should use if you wish to utilise randomness.
 - if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
 
