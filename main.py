@@ -96,7 +96,7 @@ if __name__ == "__main__":
     players,
     game=common.get_game(args.game),
     turns=args.rounds,
-    repetitions=1,
+    repetitions=5,
     seed=1,
     noise=args.noise,
   )

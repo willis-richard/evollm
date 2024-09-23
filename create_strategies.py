@@ -51,18 +51,18 @@ The tournament uses the Axelrod library. Your response should only include the p
 
 def strategy(self, opponent: axl.player.Player) -> axl.Action:
 
-You may assume the following imports:
+You use assume the following imports:
 
 import axelrod as axl
 
-Some attributes that you may wish to use are:
+No other libraries are to be used. Some attributes that you may wish to use are:
 - self.history or opponent.history return a List[axl.Action] of the moves played so far.
 - the histories have properties history.cooperations and history.defections which return a count of the total number of cooperate or defect actions played.
 - self.score or opponent.score returns the total score achieved so far in the match.
 - self._random is an axl.RandomGenerator instance which you should use if you wish to utilise randomness.
 - if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
-- to find the number of defections played in the last N moves, use sum([a == axl.Action.D for a in self.history[-N:]])
-- to compute the score for the last N interactions, use my_score, opponent_score = total_scores(self.history[-N:], opponent.history[-N:])
+- to find the number of defections played in the last N moves, use sum([a == axl.Action.D for a in self.history[-N:]]).
+- to compute the score for the last N interactions, use self.total_scores(self.history[-N:], opponent.history[-N:]), which returns a tuple of (your score, opponent score).
 
 {noise_str}Begin your response by repeating the strategy function signature.
 """
@@ -72,23 +72,30 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
   system = "You are an AI assistant with expertise in game theory. Your task is to create strategies to maximise your score in an iterated normal-form game tournament."
 
-  task_prompt = create_task_prompt(game, rounds, noise)
-  task_prompt += "\n\n"
-  task_prompt += f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should take into account the game payoffs and how a competent opponent may react. Ensure that the strategies are robust against a range of possible opponent behaviours without being too complicated. Write the strategy descriptions in natural language only, but be specific."""
+  # prompt = create_task_prompt(game, rounds, noise)
+  # prompt += "\n\nFirst, reason about possible opponent behaviours that you may encounter."
 
-  prompt = task_prompt + "\n\n" + f"First, write the {attitude.lower()} strategy."
+  # messages = [{"role": "user", "content": prompt}]
+  # response = get_response(client, system, messages, temp)
+  # logger.info("Response:\n:%s", response)
+
+  prompt = f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should be simple and take into account both the game payoffs and how competent opponents may react if they are themselves playing aggressively, cooperatively or neutrally. Write the strategy descriptions in natural language only, but be specific."""
+  prompt = prompt + "\n\n" + f"First, write the {attitude.lower()} strategy."
+
+  # Ensure that the strategies are robust against a range of possible opponent behaviours without being too complicated.
+
   messages = [{"role": "user", "content": prompt}]
   response = get_response(client, system, messages, temp)
-  logger.info(response)
+  logger.info("Response:\n:%s", response)
 
   messages += [
     { "role": "assistant",
     "content": response},
     { "role": "user",
-    "content": f"Please critique this strategy. Verify that it uses a {attitude.lower()} approach, is not overly complicated, and identify any strategic errors or unreachable conditions."}
+    "content": f"Please critique the proposed strategy. Verify that it uses a {attitude.lower()} approach, is simple, and identify any strategic errors, such as incorrect or unreachable logical conditions."}
     ]
   response = get_response(client, system, messages, temp / 2)
-  logger.info(response)
+  logger.info("Response:\n:%s", response)
 
   messages += [
     { "role": "assistant",
@@ -97,7 +104,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
       "content": "Rewrite the strategy taking into account the feedback."}
     ]
   strategy = get_response(client, system, messages, 0)
-  logger.info(strategy)
+  logger.info("Response:\n:%s", strategy)
 
   return strategy
 
@@ -110,11 +117,11 @@ def test_algorithm(algorithm: str):
     allowed_nodes = (
         ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
         ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
-        ast.Compare, ast.USub, ast.In, ast.Is, ast.For, ast.Pass,
+        ast.Compare, ast.USub, ast.In, ast.NotIn, ast.Is, ast.For, ast.Pass,
         ast.List, ast.Dict, ast.Tuple, ast.Num, ast.Str, ast.Constant,
         ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr, ast.Attribute,
         ast.Call, ast.Store, ast.Index, ast.Slice, ast.Subscript, ast.Load,
-        ast.GeneratorExp, ast.comprehension, ast.ListComp,
+        ast.GeneratorExp, ast.comprehension, ast.ListComp, ast.Lambda,
         ast.Gt, ast.Lt, ast.GtE, ast.LtE, ast.Eq, ast.NotEq,
         ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv,
         ast.Assign, ast.AugAssign, ast.Pow, ast.Mod,
@@ -186,7 +193,7 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
   messages = [{"role": "user", "content": prompt}]
 
   response = get_response(client, system, messages, 0)
-  logger.info(response)
+  logger.info("Response:\n:%s", response)
 
   messages += [
     { "role": "assistant",
@@ -195,7 +202,7 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
     "content": "Please assess whether this implementation is correct and faithful to the strategy description. Detail any improvements or corrections."}
     ]
   response = get_response(client, system, messages, 0)
-  logger.info(response)
+  logger.info("Response:\n:%s", response)
 
   messages += [
     { "role": "assistant",
@@ -205,7 +212,7 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
     ]
 
   algorithm = get_response(client, system, messages, 0)
-  logger.info(response)
+  logger.info("Response:\n:%s", algorithm)
 
   algorithm = strip_code_markers(algorithm)
   algorithm = fix_common_mistakes(algorithm)
@@ -349,7 +356,7 @@ if __name__ == "__main__":
     with open("output.py", "w", encoding="utf8") as f:
       f.write("""import axelrod as axl
 
-from common import Attitude, auto_update_score, LLM_Strategy, total_scores""")
+from common import Attitude, auto_update_score, LLM_Strategy""")
 
   strategies_to_create: list[tuple[Attitude, int]] = [(a, n) for a in Attitude for n in range(1, 1 + args.n) if (a, n) not in done_classes]
   game = common.get_game(args.game)

@@ -75,10 +75,6 @@ def get_game(name: str) -> axl.Game:
     assert False, "Game name not recognised"
 
 
-def total_scores(player_history, opponent_history) -> tuple[int, int]:
-  return axl.interaction_utils.compute_final_score(player_history, opponent_history)
-
-
 class LLM_Strategy(axl.player.Player):
   def __init__(self) -> None:
     super().__init__()
@@ -100,6 +96,10 @@ class LLM_Strategy(axl.player.Player):
   @property
   def score(self) -> int:
     return self._score
+
+  def total_scores(self, player_history, opponent_history) -> tuple[int, int]:
+    game = self.match_attributes["game"]
+    return axl.interaction_utils.compute_final_score(zip(player_history, opponent_history), game)
 
   def update_score(self, opponent: axl.player.Player):
     game = self.match_attributes["game"]
