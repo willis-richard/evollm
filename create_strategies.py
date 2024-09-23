@@ -22,87 +22,50 @@ logging.getLogger("openai._base_client").setLevel(logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def create_task_prompt(game: axl.Game, rounds: int, noise: float | None) -> str:
+def create_game_information(game: axl.Game, rounds: int, noise: float | None) -> str:
   R, P, S, T = game.RPST()
-  noise_str = " Matches have noisy actions: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise is not None else ""
+  noise_str = "\n\nActions are noisy: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise is not None else ""
 
-  return f"""Your task is to write a strategy to play an iterated normal-form game with the following payoff matrix:
+  return f"""The game lasts for {rounds} rounds and has the following payoffs:
 
-|   | C   | D   |
-| C | {R},{R} | {S},{T} |
-| D | {T},{S} | {P},{P} |
-
-If you play C and your opponent plays C, you both score {R}.
-If you play C and your opponent plays D, you score {S} and they score {T}.
-If you play D and your opponent plays C, you score {T} and they score {S}.
-If you play D and your opponent plays D, you both score {P}.
-
-Each match lasts {rounds}.{noise_str}"""
-
-
-def create_algorithm_prompt(strategy: str, noise: float | None) -> str:
-  noise_str = "You do not need to implement the noise, as this is handled by the tournament implementation. " if noise is not None else ""
-
-  return f"""Implement the following strategy description as an algorithm using python 3.11.
-
-{strategy}
-
-The tournament uses the Axelrod library. Your response should only include the python code for the strategy function, which has the following signature:
-
-def strategy(self, opponent: axl.player.Player) -> axl.Action:
-
-You use assume the following imports:
-
-import axelrod as axl
-
-No other libraries are to be used. Some attributes that you may wish to use are:
-- self.history or opponent.history return a List[axl.Action] of the moves played so far.
-- the histories have properties history.cooperations and history.defections which return a count of the total number of cooperate or defect actions played.
-- self.score or opponent.score returns the total score achieved so far in the match.
-- self._random is an axl.RandomGenerator instance which you should use if you wish to utilise randomness.
-- if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
-- to find the number of defections played in the last N moves, use sum([a == axl.Action.D for a in self.history[-N:]]).
-- to compute the score for the last N interactions, use self.total_scores(self.history[-N:], opponent.history[-N:]), which returns a tuple of (your score, opponent score).
-
-{noise_str}Begin your response by repeating the strategy function signature.
-"""
+- If you play C and your opponent plays C, you both score {R}.
+- If you play C and your opponent plays D, you score {S} and they score {T}.
+- If you play D and your opponent plays C, you score {T} and they score {S}.
+- If you play D and your opponent plays D, you both score {P}.{noise_str}"""
 
 
 def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float | None) -> str:
 
-  system = "You are an AI assistant with expertise in game theory. Your task is to create strategies to maximise your score in an iterated normal-form game tournament."
-
-  # prompt = create_task_prompt(game, rounds, noise)
-  # prompt += "\n\nFirst, reason about possible opponent behaviours that you may encounter."
-
-  # messages = [{"role": "user", "content": prompt}]
-  # response = get_response(client, system, messages, temp)
-  # logger.info("Response:\n:%s", response)
-
-  prompt = f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should be simple and take into account both the game payoffs and how competent opponents may react if they are themselves playing aggressively, cooperatively or neutrally. Write the strategy descriptions in natural language only, but be specific."""
-  prompt = prompt + "\n\n" + f"First, write the {attitude.lower()} strategy."
-
-  # Ensure that the strategies are robust against a range of possible opponent behaviours without being too complicated.
+  system = "You are an AI assistant with expertise in game theory. Your objective is to write a strategy to maximise your total payoff in an iterated normal-form game."
+  prompt = f"Considering that your opponent is competent and may behave aggressively, cooperatively or neutrally, create a strategy to play {attitude.lower()}ly. The strategy should be simple and take into account both the game payoffs and how your opponent may react to your play. Write the strategy in natural language only, but be specific."
+  prompt += "\n\n" + create_game_information(game, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
+  logger.info("Prompt:\n:%s", prompt)
   response = get_response(client, system, messages, temp)
   logger.info("Response:\n:%s", response)
 
-  messages += [
-    { "role": "assistant",
-    "content": response},
-    { "role": "user",
-    "content": f"Please critique the proposed strategy. Verify that it uses a {attitude.lower()} approach, is simple, and identify any strategic errors, such as incorrect or unreachable logical conditions."}
-    ]
-  response = get_response(client, system, messages, temp / 2)
-  logger.info("Response:\n:%s", response)
+  prompt = f"Please critique the proposed strategy. Verify that it uses a {attitude.lower()} approach, is simple, and identify any strategic errors, such as incorrect or unreachable logical conditions. Furthermore, consider which behaviours it may struggle against, and suggest ways to make it more robust."
 
   messages += [
     { "role": "assistant",
     "content": response},
     { "role": "user",
-      "content": "Rewrite the strategy taking into account the feedback."}
+      "content": prompt}
     ]
+  logger.info("Prompt:\n:%s", prompt)
+  response = get_response(client, system, messages, temp / 2)
+  logger.info("Response:\n:%s", response)
+
+  prompt = "Rewrite the strategy taking into account the feedback. Be clear about the conditions when it will cooperate or defect."
+
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+      "content": prompt}
+    ]
+  logger.info("Prompt:\n:%s", prompt)
   strategy = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", strategy)
 
@@ -182,35 +145,69 @@ def add_indent(text: str) -> str:
   return "\n".join("  " + line for line in text.splitlines())
 
 
+def create_algorithm_prompt(strategy: str, rounds: int, noise: float | None) -> str:
+  noise_str = "You do not need to implement the noise, as this is handled by the match implementation. " if noise is not None else ""
+
+  return f"""Implement the following strategy description as an algorithm using python 3.11 and the Axelrod library.
+
+{strategy}
+
+{create_game_information(game, rounds, noise)}
+
+Your response should only include the python code for the strategy function, which has the following signature:
+
+def strategy(self, opponent: axl.player.Player) -> axl.Action:
+
+You use assume the following imports:
+
+import axelrod as axl
+
+No other libraries are to be used, and no subfunctions are to be defined. Some attributes that you may wish to use are:
+- 'self.history' or 'opponent.history' return a list[axl.Action] of the moves played so far.
+- 'history.cooperations' and 'history.defections' return a count of the total number of cooperate or defect actions played, respectively.
+- 'self.score' or 'opponent.score' returns the total score achieved so far in the match.
+- 'self._random' is an axl.RandomGenerator instance which you should ought to use when randomness is required.
+- if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
+- to find the number of defections played in the last N moves, use 'sum([a == axl.Action.D for a in self.history[-N:]])'.
+- to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
+
+{noise_str}Begin your response by repeating the strategy function signature.
+"""
+
+
 def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
                        strategy: str, game: axl.Game, rounds: int,
                        noise: float | None) -> str:
 
   system = "You are an AI assistant with expertise in game theory and programming. Your task is to implement the strategy description provided by the user as an algorithm. You only include python code in your response."
-  prompt = create_task_prompt(
-      game, rounds, noise) + "\n\n" + create_algorithm_prompt(strategy, noise)
+  prompt = create_algorithm_prompt(strategy, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
-
+  logger.info("Prompt:\n:%s", prompt)
   response = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", response)
+
+  prompt = "Please assess whether this implementation is correct and faithful to the strategy description. Detail any improvements or corrections."
 
   messages += [
     { "role": "assistant",
     "content": response},
     { "role": "user",
-    "content": "Please assess whether this implementation is correct and faithful to the strategy description. Detail any improvements or corrections."}
+      "content": prompt}
     ]
+  logger.info("Prompt:\n:%s", prompt)
   response = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", response)
+
+  prompt = "Now, rewrite the algorithm taking into account the feedback."
 
   messages += [
     { "role": "assistant",
     "content": response},
     { "role": "user",
-      "content": "Now, rewrite the algorithm taking into account the feedback."}
+      "content": prompt}
     ]
-
+  logger.info("Prompt:\n:%s", prompt)
   algorithm = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", algorithm)
 
