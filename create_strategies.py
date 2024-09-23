@@ -16,6 +16,7 @@ import random
 # Configure logging
 logging.basicConfig(
     filename="create_strategies.log", filemode="w", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 logging.getLogger("openai._base_client").setLevel(logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.WARN)
@@ -39,10 +40,6 @@ If you play D and your opponent plays D, you both score {P}.
 Each match lasts {rounds}.{noise_str}"""
 
 
-def create_strategy_prompt() -> str:
-  return f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should take into account the game payoffs and be robust against a range of opponent behaviours while remaining simple enough to be actionable. Write the strategy descriptions in natural language only."""
-
-
 def create_algorithm_prompt(strategy: str, noise: float | None) -> str:
   noise_str = "You do not need to implement the noise, as this is handled by the tournament implementation. " if noise is not None else ""
 
@@ -62,48 +59,47 @@ Some attributes that you may wish to use are:
 - self.history or opponent.history return a List[axl.Action] of the moves played so far.
 - the histories have properties history.cooperations and history.defections which return a count of the total number of cooperate or defect actions played.
 - self.score or opponent.score returns the total score achieved so far in the match.
-- self._random is a numpy.random.RandomGenerator instance which you should use if you wish to utilise randomness.
+- self._random is an axl.RandomGenerator instance which you should use if you wish to utilise randomness.
 - if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
+- to find the number of defections played in the last N moves, use sum([a == axl.Action.D for a in self.history[-N:]])
+- to compute the score for the last N interactions, use my_score, opponent_score = total_scores(self.history[-N:], opponent.history[-N:])
 
 {noise_str}Begin your response by repeating the strategy function signature.
 """
 
 
-def generate_strategies(client: openai.OpenAI | anthropic.Anthropic,
-                        temp: float, game: axl.Game,
-                        rounds: int, noise: float | None) -> str:
+def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float | None) -> str:
 
-  system = "You are an AI assistant with expertise in game theory. Your task is to create strategies to maximise your score in an iterated normal-form game tournament, taking into account the payoffs."
-  prompt = create_task_prompt(game, rounds,
-                              noise) + "\n\n" + create_strategy_prompt()
+  system = "You are an AI assistant with expertise in game theory. Your task is to create strategies to maximise your score in an iterated normal-form game tournament."
 
-  strategies = {}
-  attitudes = [a for a in Attitude]
-  random.shuffle(attitudes)
+  task_prompt = create_task_prompt(game, rounds, noise)
+  task_prompt += "\n\n"
+  task_prompt += f"""Please create three strategies: one that behaves aggressively, one that behaves cooperatively, and one that is neutral. The strategies should take into account the game payoffs and how a competent opponent may react. Ensure that the strategies are robust against a range of possible opponent behaviours without being too complicated. Write the strategy descriptions in natural language only, but be specific."""
 
-  prompt += "\n\n" + f"First, write the {attitudes[0].lower()} strategy."
+  prompt = task_prompt + "\n\n" + f"First, write the {attitude.lower()} strategy."
   messages = [{"role": "user", "content": prompt}]
-  strategies[attitudes[0]] = get_response(client, system, messages, temp)
+  response = get_response(client, system, messages, temp)
+  logger.info(response)
 
-  messages += [{
-      "role": "assistant",
-      "content": strategies[attitudes[0]]
-  }]
-  messages += [{
-      "role": "user",
-      "content": f"Now, write the {attitudes[1].lower()} strategy"
-  }]
-  strategies[attitudes[1]] = get_response(client, system, messages,
-                                          temp)
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+    "content": f"Please critique this strategy. Verify that it uses a {attitude.lower()} approach, is not overly complicated, and identify any strategic errors or unreachable conditions."}
+    ]
+  response = get_response(client, system, messages, temp / 2)
+  logger.info(response)
 
-  messages += [{
-      "role": "assistant",
-      "content": strategies[attitudes[1]]
-  }]
-  messages += [{"role": "user", "content": f"Now, write the {attitudes[2].lower()} strategy"}]
-  strategies[attitudes[2]] = get_response(client, system, messages, temp)
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+      "content": "Rewrite the strategy taking into account the feedback."}
+    ]
+  strategy = get_response(client, system, messages, 0)
+  logger.info(strategy)
 
-  return strategies
+  return strategy
 
 
 def test_algorithm(algorithm: str):
@@ -114,9 +110,9 @@ def test_algorithm(algorithm: str):
     allowed_nodes = (
         ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
         ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
-        ast.Compare, ast.USub, ast.In, ast.Is, ast.For,
-        ast.List, ast.Tuple, ast.Num, ast.Str, ast.Constant, ast.Attribute,
-        ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr,
+        ast.Compare, ast.USub, ast.In, ast.Is, ast.For, ast.Pass,
+        ast.List, ast.Dict, ast.Tuple, ast.Num, ast.Str, ast.Constant,
+        ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr, ast.Attribute,
         ast.Call, ast.Store, ast.Index, ast.Slice, ast.Subscript, ast.Load,
         ast.GeneratorExp, ast.comprehension, ast.ListComp,
         ast.Gt, ast.Lt, ast.GtE, ast.LtE, ast.Eq, ast.NotEq,
@@ -125,7 +121,6 @@ def test_algorithm(algorithm: str):
     )
     # yapf: enable
 
-    # astor.to_source(node)
     if not isinstance(node, allowed_nodes):
       raise ValueError(
           f"Unsafe node type: {type(node).__name__}\nnode:\n{ast.unparse(node)}"
@@ -165,11 +160,14 @@ def strip_code_markers(s):
 def fix_common_mistakes(s):
   s = s.replace("axl.D", "axl.Action.D")
   s = s.replace("axl.C", "axl.Action.C")
+  s = s.replace("Action.DEFECT", "Action.D")
+  s = s.replace("Action.COOPERATE", "Action.C")
   s = s.replace("history.count(axl.Action.D)", "history.defections")
   s = s.replace("history.count(axl.Action.C)", "history.cooperations")
   s = s.replace("history.defections()", "history.defections")
   s = s.replace("history.cooperations()", "history.cooperations")
   s = s.replace("_random.rand()", "_random.random()")
+  s = s.replace("_random.integers", "_random.randint")
   return s
 
 
@@ -187,7 +185,27 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
 
   messages = [{"role": "user", "content": prompt}]
 
+  response = get_response(client, system, messages, 0)
+  logger.info(response)
+
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+    "content": "Please assess whether this implementation is correct and faithful to the strategy description. Detail any improvements or corrections."}
+    ]
+  response = get_response(client, system, messages, 0)
+  logger.info(response)
+
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+      "content": "Now, rewrite the algorithm taking into account the feedback."}
+    ]
+
   algorithm = get_response(client, system, messages, 0)
+  logger.info(response)
 
   algorithm = strip_code_markers(algorithm)
   algorithm = fix_common_mistakes(algorithm)
@@ -197,13 +215,13 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
 
 
 def format_comment(text, width=78):
-    # Wrap the text to the specified width
-    wrapped = textwrap.wrap(text, width=width)
-    # Add "# " prefix to each line and join them
-    return "\n".join("# " + line for line in wrapped)
+  # Wrap the text to the specified width
+  wrapped = textwrap.wrap(text, width=width)
+  # Add "# " prefix to each line and join them
+  return "\n".join("# " + line for line in wrapped)
 
 
-def write_class(description: str, n: int, attitude: Attitude, game: axl.Game,
+def write_class(description: str, attitude: Attitude, n: int, game: axl.Game,
                 rounds: int, noise: float | None, algorithm: str) -> str:
   return f"""{format_comment(description)}
 
@@ -218,17 +236,12 @@ class {attitude}_{n}(LLM_Strategy):
 {algorithm}"""
 
 
-def generate_class(text_file: TextIOWrapper, client: openai.OpenAI, n: int,
-                   temp: float, game: axl.Game, rounds: int, noise: float):
-  strategies = generate_strategies(client, temp, game, rounds, noise)
-  algorithms = {}
+def generate_class(text_file: TextIOWrapper, client: openai.OpenAI, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float):
+  strategy = generate_strategies(client, attitude, temp, game, rounds, noise)
 
-  for a in Attitude:
-    algorithms[a] = generate_algorithm(client, strategies[a], game, rounds,
-                                       noise)
+  algorithm = generate_algorithm(client, strategy, game, rounds, noise)
 
-  for a in Attitude:
-    text_file.write("\n\n" + write_class(strategies[a], n, a, game, rounds, noise, algorithms[a]))
+  text_file.write("\n\n" + write_class(strategy, attitude, n, game, rounds, noise, algorithm))
 
 
 def openai_message(client: openai.OpenAI, system: str, prompt: str,
@@ -326,20 +339,22 @@ if __name__ == "__main__":
         if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and
         cls != output.LLM_Strategy
     ]
-    done_classes = set([c.n for c in player_classes])
+    done_classes = set([(c.attitude, c.n) for c in player_classes])
   else:
+    if os.path.exists("output.py"):
+      assert False, "output.py exists and will be overwritten, delete or rename the file"
+
     done_classes = []
 
     with open("output.py", "w", encoding="utf8") as f:
       f.write("""import axelrod as axl
 
-from common import Attitude, auto_update_score, LLM_Strategy""")
+from common import Attitude, auto_update_score, LLM_Strategy, total_scores""")
 
-  strategies_to_create: list[int] = [n for n in range(1, 1 + args.n)
-                                     if n not in done_classes]
+  strategies_to_create: list[tuple[Attitude, int]] = [(a, n) for a in Attitude for n in range(1, 1 + args.n) if (a, n) not in done_classes]
   game = common.get_game(args.game)
 
   with open("output.py", "a", encoding="utf8") as f:
-    for n in strategies_to_create:
-      generate_class(f, client, n, args.temp, game,
+    for a, n in strategies_to_create:
+      generate_class(f, client, a, n, args.temp, game,
                      args.rounds, args.noise)

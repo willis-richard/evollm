@@ -90,6 +90,7 @@ if __name__ == "__main__":
   # N.B. use Player() rather Player, aka instances not classes
   # otherwise gives the error "Player.clone() missing 1 required positional argument: 'self'"
   players = [p() for p in player_classes]
+  print(players)
 
   tournament = axl.Tournament(
     players,

@@ -6,13 +6,6 @@ import random
 import common
 import output
 
-# Monkey patch on a score attribute for random.
-
-def score_getter(self):
-  return random.randint(0, 80)
-
-axl.Random.score = property(score_getter)
-
 class TestPlayerClass(unittest.TestCase):
   pass
 

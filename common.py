@@ -75,6 +75,10 @@ def get_game(name: str) -> axl.Game:
     assert False, "Game name not recognised"
 
 
+def total_scores(player_history, opponent_history) -> tuple[int, int]:
+  return axl.interaction_utils.compute_final_score(player_history, opponent_history)
+
+
 class LLM_Strategy(axl.player.Player):
   def __init__(self) -> None:
     super().__init__()
@@ -85,7 +89,7 @@ class LLM_Strategy(axl.player.Player):
     return self.__class__.__name__
 
   classifier = {
-      "memory_depth": 0,  # Memory-one Four-Vector = (p, p, p, p)
+      "memory_depth": float("inf"),
       "stochastic": True,
       "long_run_time": False,
       "inspects_source": False,
