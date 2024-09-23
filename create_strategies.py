@@ -78,7 +78,7 @@ def test_algorithm(algorithm: str):
     """Check if the AST node is considered safe."""
     # yapf: disable
     allowed_nodes = (
-        ast.FunctionDef, ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
+        ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp,
         ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
         ast.Compare, ast.USub, ast.In, ast.NotIn, ast.Is, ast.For, ast.Pass,
         ast.List, ast.Dict, ast.Tuple, ast.Num, ast.Str, ast.Constant,
@@ -90,6 +90,7 @@ def test_algorithm(algorithm: str):
         ast.Assign, ast.AugAssign, ast.Pow, ast.Mod,
     )
     # yapf: enable
+
 
     if not isinstance(node, allowed_nodes):
       raise ValueError(
@@ -103,8 +104,12 @@ def test_algorithm(algorithm: str):
     return True
 
   try:
-    parsed_ast = ast.parse(algorithm)
-    for node in parsed_ast.body:
+    tree = ast.parse(algorithm)
+    # Check if the tree has exactly one child
+    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
+        raise ValueError("Algorithm contains more than just a single function definition")
+
+    for node in ast.iter_child_nodes(tree.body[0]):
       is_safe_ast(node)
   except AttributeError as e:
     print(f"AttributeError: {str(e)}")
