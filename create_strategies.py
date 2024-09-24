@@ -45,7 +45,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
   response = get_response(client, system, messages, temp)
   logger.info("Response:\n:%s", response)
 
-  prompt = f"Please critique the proposed strategy. Verify that it uses a {attitude.lower()} approach, is simple, and identify any strategic errors, such as incorrect or unreachable logical conditions. Furthermore, consider which behaviours it may struggle against, and suggest ways to make it more robust."
+  prompt = f"Please critique the proposed strategy. Verify that it is simple and that it uses a {attitude.lower()} approach. Furthermore, consider which behaviours it may struggle against, and suggest ways to make it more robust."
 
   messages += [
     { "role": "assistant",
@@ -57,7 +57,31 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
   response = get_response(client, system, messages, temp / 2)
   logger.info("Response:\n:%s", response)
 
-  prompt = "Rewrite the strategy taking into account the feedback. Be clear about the conditions when it will cooperate or defect."
+  prompt = "Rewrite the strategy taking into account the feedback."
+
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+      "content": prompt}
+    ]
+  logger.info("Prompt:\n:%s", prompt)
+  response = get_response(client, system, messages, temp / 2)
+  logger.info("Response:\n:%s", response)
+
+  prompt = f"Please check the proposed strategy and identify any strategical or logical errors, such as unreachable conditions."
+
+  messages += [
+    { "role": "assistant",
+    "content": response},
+    { "role": "user",
+      "content": prompt}
+    ]
+  logger.info("Prompt:\n:%s", prompt)
+  response = get_response(client, system, messages, temp / 2)
+  logger.info("Response:\n:%s", response)
+
+  prompt = "Rewrite the strategy taking into account the feedback. Be clear about the conditions when it will cooperate or defect, and that they are ordered appropriately."
 
   messages += [
     { "role": "assistant",
@@ -68,6 +92,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
   logger.info("Prompt:\n:%s", prompt)
   strategy = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", strategy)
+
 
   return strategy
 
@@ -170,11 +195,11 @@ import axelrod as axl
 No other libraries are to be used, and no subfunctions are to be defined. Some attributes that you may wish to use are:
 - 'self.history' or 'opponent.history' return a list[axl.Action] of the moves played so far.
 - 'history.cooperations' and 'history.defections' return a count of the total number of cooperate or defect actions played, respectively.
+- to count the number of defections played in the last N moves, use 'self.history[-N:].count(axl.Action.D)'.
 - 'self.score' or 'opponent.score' returns the total score achieved so far in the match.
+- to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
 - 'self._random' is an axl.RandomGenerator instance which you should ought to use when randomness is required.
 - if you initialise custom attributes, use 'if not self.history' to determine if it is the first time the strategy function is called.
-- to find the number of defections played in the last N moves, use 'sum([a == axl.Action.D for a in self.history[-N:]])'.
-- to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
 
 {noise_str}Begin your response by repeating the strategy function signature.
 """
