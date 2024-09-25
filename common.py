@@ -1,7 +1,7 @@
 import argparse
 import axelrod as axl
 from enum import StrEnum
-from functools import partial
+from functools import partial, wraps
 
 
 def restricted_float(x, lower: float, upper: float):
@@ -56,6 +56,7 @@ class Classic(axl.Game):
 
 
 def auto_update_score(strategy_method):
+  @wraps(strategy_method)
   def wrapper(self, opponent):
     self.update_score(opponent)
     return strategy_method(self, opponent)
