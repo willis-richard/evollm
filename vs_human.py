@@ -19,7 +19,7 @@ def parse_arguments() -> argparse.Namespace:
   parser.add_argument(
       "--game",
       type=str,
-      required=True,
+      default="classic",
       help="Name of the game to play")
   parser.add_argument(
       "--rounds", type=int, default=1000, help="Number of rounds in a match")
@@ -30,6 +30,11 @@ def parse_arguments() -> argparse.Namespace:
       type=common.noise_arg,
       default=None,
       help="Probability that an action is flipped")
+  parser.add_argument(
+      "--keep",
+      type=common.temp_arg,
+      default=None,
+      help="Top proportion of strategies to keep")
 
   return parser.parse_args()
 
@@ -60,15 +65,16 @@ if __name__ == "__main__":
       strategy = p()
       tournament = axl.Tournament(players + [strategy],
                                   turns=args.rounds,
-                                  repetitions=1,
+                                  repetitions=3,
                                   noise=args.noise,
-                                  seed=1)
-      results = tournament.play()
+                                  seed=1,
+                                  game=common.get_game(args.game))
+      results = tournament.play(processes=0)
       algo_results[repr(strategy)][suffix] = results.scores[-1][0]
   for k, v in algo_results.items():
     sorted_s = pd.Series(v).sort_values(ascending=False)
     print(k, sorted_s, sep="\n")
-    for i in range(args.n // 2):
+    for i in range(int(args.n * args.keep)):
       population.append(f"{k}_{sorted_s.index[i]}")
 
   print(population)
@@ -77,10 +83,9 @@ if __name__ == "__main__":
     json.dump(population, f)
 
   Aggressive, Cooperative, Neutral = strategies.create_classes(args.algo, population=population)
-  players += [Aggressive(), Cooperative(), Neutral()]
-  tournament = axl.Tournament(players,
+  tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
                               turns=args.rounds,
-                              repetitions=5,
+                              repetitions=10,
                               noise=args.noise,
                               seed=1)
   results = tournament.play()

@@ -24,7 +24,7 @@ def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) 
   data_matrix = np.array(data)
   rates = defaultdict(list)
 
-  # Iterate through the upper triangle of the cooperation matrix
+  # Iterate through the upper triangle of the data matrix
   for i, p1 in enumerate(players):
     for x, p2 in enumerate(players[i:]):
       j = i + x
@@ -56,10 +56,10 @@ def parse_arguments() -> argparse.Namespace:
   parser.add_argument(
       "--game",
       type=str,
-      required=True,
+      default="classic",
       help="Name of the game to play")
   parser.add_argument(
-      "--rounds", type=int, default=20, help="Number of rounds in a match")
+      "--rounds", type=int, default=1000, help="Number of rounds in a match")
   parser.add_argument(
       "--noise",
       type=common.noise_arg,
@@ -82,6 +82,8 @@ if __name__ == "__main__":
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
 
+  player_classes = [p for p in player_classes if "Neutral" not in p.__name__]
+
   if args.population:
     with open("results/population.json", "r") as f:
       population = json.load(f)
@@ -97,16 +99,16 @@ if __name__ == "__main__":
     game=common.get_game(args.game),
     turns=args.rounds,
     repetitions=5,
-    seed=1,
     noise=args.noise,
   )
 
-  results = tournament.play(processes=4, filename="results_full.txt")
+  results = tournament.play(processes=0, filename="results_full.txt")
   results.write_summary("results_summary.txt")
 
-  print(analyse_by_genome(results.normalised_cooperation, players))
-  print(analyse_by_genome(results.payoffs, players))
+  print(results.normalised_cooperation)
+  print("Normalised cooperation\n", analyse_by_genome(results.normalised_cooperation, players))
+  print(results.payoffs)
+  print("Payoff\n", analyse_by_genome(results.payoffs, players))
 
-
-  # df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
-  # print(df)
+  df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
+  print(df)
