@@ -37,7 +37,7 @@ def create_game_information(game: axl.Game, rounds: int, noise: float | None) ->
 def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float | None) -> str:
 
   system = "You are an AI assistant with expertise in game theory."
-  prompt = f"Create a strategy that plays {attitude.lower()}ly to maximise your total payoff in an iterated normal-form game. The strategy should be simple and take into account the game payoffs. You should expect your opponent to be competent and behave in either an aggressive, cooperative or neutral manner. Write the strategy in natural language only, but be specific."
+  prompt = f"Create a strategy that plays {attitude.lower()}ly to maximise your total payoff in an iterated normal-form game. The strategy should be simple and take into account the game payoffs. Write the strategy in natural language only, but be specific."
   prompt += "\n\n" + create_game_information(game, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
@@ -47,8 +47,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
   prompt = f"""Please critique the proposed strategy:
 - Verify that it is simple and that it behaves {attitude.lower()}ly.
-- Identify any strategical or logical errors, such as unreachable conditions.
-- Assess whether it is robust against aggressive, cooperative and neutral opponents."""
+- Identify any strategical or logical errors, such as unreachable conditions."""
 
   messages += [
     { "role": "assistant",

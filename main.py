@@ -82,7 +82,7 @@ if __name__ == "__main__":
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
 
-  player_classes = [p for p in player_classes if "Neutral" not in p.__name__]
+  # player_classes = [p for p in player_classes if "Neutral" not in p.__name__]
 
   if args.population:
     with open("results/population.json", "r") as f:

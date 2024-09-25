@@ -3,6 +3,7 @@ import axelrod as axl
 import pprint
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
+import numpy as np
 
 import common
 import strategies
@@ -45,13 +46,10 @@ if __name__ == "__main__":
   players = [cls() for cls, count in zip(classes, args.initial_pop) for _ in range(count)]
   print(players)
 
-  winning = []
-  length = []
-
-  def run_moran_process():
+  def run_moran_process(seed):
     mp = axl.MoranProcess(
         players,
-        seed=1,
+        seed=seed,
         turns=args.rounds,
         noise=args.noise,
         game=common.get_game(args.game))
@@ -61,9 +59,17 @@ if __name__ == "__main__":
     print(len(mp))
     return mp.winning_strategy_name
 
-  for i in range(args.iterations):
-    # winning.append(mp.winning_strategy_name)
-    # length.append(len(mp)
+  num_cpu = 4
+  seeds = np.random.randint(0, 2**32, size=args.iterations)
+
+  with Pool(processes=num_cpu) as pool:
+      results = pool.map(run_moran_process, seeds)
+
+  winner_counts = {}
+  for winner in results:
+      winner_counts[winner] = winner_counts.get(winner, 0) + 1
+
+  print(winner_counts)
 
   # pprint.pprint(populations)
   # for row in mp.score_history:
