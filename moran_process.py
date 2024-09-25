@@ -2,6 +2,7 @@ import argparse
 import axelrod as axl
 import pprint
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
 
 import common
 import strategies
@@ -11,20 +12,27 @@ def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument(
-      "--n",
+      "--initial_pop",
+      nargs=3,
       type=int,
       required=True,
-      help="Number of strategies of each attitude to create")
+      help="Initial Number of aggressive, cooperative and neutral players")
   parser.add_argument(
-      "--temperature", type=float, required=True, help="Temperature of the LLM")
+      "--iterations",
+      type=int,
+      default=100,
+      help="Number of times to run the simulation")
   parser.add_argument(
-      "--game", type=str, required=True, help="Name of the game to play")
+      "--game", type=str, default="classic", help="Name of the game to play")
   parser.add_argument(
-      "--prob_end", type=float, default=None, help="Probability the match ends after each round")
+      "--rounds", type=int, default=1000, help="Number of rounds in a match")
   parser.add_argument(
-      "--noise", type=float, default=None, help="Probability an action is flipped")
+      "--noise",
+      type=common.noise_arg,
+      default=None,
+      help="Probability that an action is flipped")
   parser.add_argument(
-      "--resume", action="store_true", help="If generation crashed, continue")
+      "--population", action="store_true", help="Filter strategies by the population")
 
   return parser.parse_args()
 
@@ -34,28 +42,35 @@ if __name__ == "__main__":
 
   # N.B. create separate instances for each player, not copies!
   classes = strategies.create_classes(args.algo)
-  counts = [3, 3, 9]
-  players = [cls() for cls, count in zip(classes, counts) for _ in range(count)]
+  players = [cls() for cls, count in zip(classes, args.initial_pop) for _ in range(count)]
   print(players)
-  mp = axl.MoranProcess(
-      players,
-      seed=1,
-      turns=20,
-      game=common.PrisonersDilemma())
 
-  populations = mp.play()
+  winning = []
+  length = []
 
-  print(mp.winning_strategy_name)
-  print(len(mp))
+  def run_moran_process():
+    mp = axl.MoranProcess(
+        players,
+        seed=1,
+        turns=args.rounds,
+        noise=args.noise,
+        game=common.get_game(args.game))
+
+    populations = mp.play()
+    print(mp.winning_strategy_name)
+    print(len(mp))
+    return mp.winning_strategy_name
+
+  for i in range(args.iterations):
+    # winning.append(mp.winning_strategy_name)
+    # length.append(len(mp)
+
   # pprint.pprint(populations)
   # for row in mp.score_history:
   #   print([round(element, 1) for element in row])
 
-  # if __name__ == "__main__":
-  #   pass
-  ax = mp.populations_plot()
-  plt.show()
-
+  # ax = mp.populations_plot()
+  # plt.show()
 
   # for _ in range(1000):  # Run for 1000 steps
   #     next(mp)
