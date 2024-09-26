@@ -333,7 +333,7 @@ def parse_arguments() -> argparse.Namespace:
   parser.add_argument(
       "--noise",
       type=common.noise_arg,
-      default=None,
+      default=0,
       help="Probability that an action is flipped")
   parser.add_argument(
       "--resume", action="store_true", help="If generation crashed, continue")

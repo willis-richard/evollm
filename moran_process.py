@@ -6,12 +6,17 @@ from multiprocessing import Pool
 import numpy as np
 
 import common
-import strategies
+import algorithms
 
 
 def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
   parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument(
+      "--algo",
+      type=str,
+      default="output",
+      help="Name of the python module with the LLM algorithms")
   parser.add_argument(
       "--initial_pop",
       nargs=3,
@@ -24,16 +29,14 @@ def parse_arguments() -> argparse.Namespace:
       default=100,
       help="Number of times to run the simulation")
   parser.add_argument(
-      "--game", type=str, default="classic", help="Name of the game to play")
+      "--keep",
+      type=common.temp_arg,
+      default=1,
+      help="Proportion of the X% best performing algorithms from each attitude to use")
   parser.add_argument(
-      "--rounds", type=int, default=1000, help="Number of rounds in a match")
-  parser.add_argument(
-      "--noise",
-      type=common.noise_arg,
-      default=None,
-      help="Probability that an action is flipped")
-  parser.add_argument(
-      "--population", action="store_true", help="Filter strategies by the population")
+      "--parallel",
+      action="store_true",
+      help="Run the Moran processes in parallel")
 
   return parser.parse_args()
 
@@ -42,7 +45,8 @@ if __name__ == "__main__":
   args = parse_arguments()
 
   # N.B. create separate instances for each player, not copies!
-  classes = strategies.create_classes(args.algo)
+  algos = algorithms.load_algorithms(args.algo, args.keep)
+  classes = algorithms.create_classes(algos)
   players = [cls() for cls, count in zip(classes, args.initial_pop) for _ in range(count)]
   print(players)
 
@@ -50,9 +54,9 @@ if __name__ == "__main__":
     mp = axl.MoranProcess(
         players,
         seed=seed,
-        turns=args.rounds,
-        noise=args.noise,
-        game=common.get_game(args.game))
+        turns=algos[0].rounds,
+        noise=algos[0].noise,
+        game=common.get_game(algos[0].game))
 
     populations = mp.play()
     # pprint.pprint(populations)
@@ -63,8 +67,13 @@ if __name__ == "__main__":
   num_cpu = 4
   seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=args.iterations)
 
-  with Pool(processes=num_cpu) as pool:
-    results = pool.map(run_moran_process, seeds)
+  if args.parallel:
+    with Pool(processes=num_cpu) as pool:
+      results = pool.map(run_moran_process, seeds)
+  else:
+    results = []
+    for i in range(args.iterations):
+      results.append(run_moran_process(seeds[i]))
 
   winner_counts = {}
   for winner in results:
