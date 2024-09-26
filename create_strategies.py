@@ -1,7 +1,5 @@
 import argparse
 import ast
-import pandas as pd
-from collections import defaultdict
 import logging
 import os
 import textwrap
@@ -12,8 +10,8 @@ import anthropic
 import axelrod as axl
 import openai
 
-import common
 import algorithms
+import common
 from common import Attitude
 
 # Configure logging
@@ -155,7 +153,7 @@ def add_indent(text: str) -> str:
   return "\n".join("  " + line for line in text.splitlines())
 
 
-def create_algorithm_prompt(strategy: str, rounds: int, noise: float | None) -> str:
+def create_algorithm_prompt(strategy: str, game: axl.Game, rounds: int, noise: float | None) -> str:
   noise_str = "You do not need to implement the noise, as this is handled by the match implementation. " if noise is not None else ""
 
   return f"""Implement the following strategy description as an algorithm using python 3.11 and the Axelrod library.
@@ -190,7 +188,7 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
                        noise: float | None) -> str:
 
   system = "You are an AI assistant with expertise in game theory and programming. Your task is to implement the strategy description provided by the user as an algorithm."
-  prompt = create_algorithm_prompt(strategy, rounds, noise)
+  prompt = create_algorithm_prompt(strategy, game, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
   logger.info("Prompt:\n:%s", prompt)
@@ -355,21 +353,13 @@ def create_strategies(args: argparse.Namespace):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"),)
 
   if args.resume:
-    import inspect
-
-    import output
-
-    player_classes = [
-        cls for name, cls in inspect.getmembers(output)
-        if inspect.isclass(cls) and issubclass(cls, output.LLM_Strategy) and
-        cls != output.LLM_Strategy
-    ]
-    done_classes = set([(c.attitude, c.n) for c in player_classes])
+    algos = algorithms.load_algorithms(args.algos)
+    done_classes = set([(c.attitude, c.n) for c in algos])
   else:
-    if os.path.exists("output.py"):
-      assert False, "output.py exists and will be overwritten, delete or rename the file"
+    if os.path.exists(f"{args.algos}.py"):
+      assert False, f"{args.algos}.py exists and will be overwritten, delete or rename the file"
 
-    done_classes = []
+    done_classes = set([])
 
     with open("output.py", "w", encoding="utf8") as f:
       f.write("""import axelrod as axl
@@ -385,56 +375,7 @@ from common import Attitude, auto_update_score, LLM_Strategy""")
                      args.rounds, args.noise)
 
 
-def rank_strategies(args: argparse.Namespace):
-  classes = [axl.Cooperator,
-          axl.Defector,
-          axl.Random,
-          axl.TitForTat,
-          axl.Grudger,
-          axl.CyclerDDC,
-          axl.CyclerCCD,
-          axl.GoByMajority,
-          axl.SuspiciousTitForTat,
-          axl.Prober,
-          # axl.OriginalGradual,
-          axl.WinStayLoseShift,
-          ]
-
-  players = [c() for c in classes]
-  algo_results = defaultdict(dict)
-  ranks = defaultdict(list)
-
-  algos = algorithms.load_algorithms(args.algo)
-  max_n = max(a.n for a in algos)
-
-  for n in range(1, max_n + 1):
-    for a in algorithms.create_classes(algos, suffix=f"_{n}"):
-      strategy = a()
-      tournament = axl.Tournament(players + [strategy],
-                                  turns=args.rounds,
-                                  repetitions=3,
-                                  noise=args.noise,
-                                  seed=1,
-                                  game=common.get_game(args.game))
-      results = tournament.play(processes=0)
-      algo_results[repr(strategy)][n] = results.scores[-1][0]
-  for k, v in algo_results.items():
-    sorted_s = pd.Series(v).sort_values(ascending=False)
-    print(k, sorted_s, sep="\n")
-    for n in range(max_n):
-      ranks[k].append(f"{k}_{sorted_s.index[n]}")
-
-  with open(f"{args.algo}.py", "a", encoding="utf8") as f:
-    for k in ranks:
-      f.write(f"\n\n{k}_ranks = [\n")
-      for r in ranks[k]:
-        f.write(f"'{r}',\n")
-      f.write("]")
-
-
 if __name__ == "__main__":
   parsed_args = parse_arguments()
 
   create_strategies(parsed_args)
-
-  rank_strategies(parsed_args)

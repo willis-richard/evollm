@@ -46,36 +46,27 @@ def parse_arguments() -> argparse.Namespace:
   parser.add_argument(
       "--algo",
       type=str,
-      required=True,
+      default="output",
       help="Name of the python module with the LLM algorithms")
   parser.add_argument(
-      "--game",
-      type=str,
-      default="classic",
-      help="Name of the game to play")
-  parser.add_argument(
-      "--rounds", type=int, default=1000, help="Number of rounds in a match")
-  parser.add_argument(
-      "--noise",
-      type=common.noise_arg,
-      default=None,
-      help="Probability that an action is flipped")
-  parser.add_argument(
-      "--population", action="store_true", help="Filter strategies by the population")
+      "--keep",
+      type=common.temp_arg,
+      default=1,
+      help="Proportion of the X% best performing algorithms from each attitude to use")
 
   return parser.parse_args()
 
 
-def play_vs_llm_strats(args: argparse.Namespace, algos:list[type[common.LLM_Strategy]]) -> None:
+def play_vs_llm_strats(algos:list[type[common.LLM_Strategy]]) -> None:
   players = [a() for a in algos]
   print(f"Players: {players}")
 
   tournament = axl.Tournament(
     players,
-    game=common.get_game(args.game),
-    turns=args.rounds,
+    game=common.get_game(algos[0].game),
+    turns=algos[0].rounds,
     repetitions=5,
-    noise=args.noise,
+    noise=algos[0].noise,
   )
 
   results = tournament.play(processes=0, filename="results_full.txt")
@@ -88,7 +79,7 @@ def play_vs_llm_strats(args: argparse.Namespace, algos:list[type[common.LLM_Stra
   print(df)
 
 
-def play_beaufils(args: argparse.Namespace, algos:list[type[common.LLM_Strategy]]) -> None:
+def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
   classes = [axl.Cooperator,
           axl.Defector,
           axl.Random,
@@ -107,9 +98,10 @@ def play_beaufils(args: argparse.Namespace, algos:list[type[common.LLM_Strategy]
 
   Aggressive, Cooperative, Neutral = algorithms.create_classes(algos)
   tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
-                              turns=args.rounds,
+                              game=common.get_game(algos[0].game),
+                              turns=algos[0].rounds,
                               repetitions=10,
-                              noise=args.noise,
+                              noise=algos[0].noise,
                               seed=1)
   results = tournament.play()
 
@@ -129,6 +121,6 @@ if __name__ == "__main__":
 
   algos = algorithms.load_algorithms(parsed_args.algo, keep=parsed_args.keep)
 
-  play_vs_llm_strats(parsed_args, algos)
+  play_vs_llm_strats(algos)
 
-  play_beaufils(parsed_args, algos)
+  play_beaufils(algos)

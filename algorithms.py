@@ -16,7 +16,7 @@ def load_algorithms(module_name: str, keep: float | None = None) -> list[type[co
 
   if keep is not None:
     keep_n = int(len(algos) / 3 * keep)
-    names = module.Aggressive_ranks[keep_n] + module.Cooperative_ranks[keep_n] + module.Neutral_ranks[keep_n]
+    names = module.Aggressive_ranks[:keep_n] + module.Cooperative_ranks[:keep_n] + module.Neutral_ranks[:keep_n]
     algos = [a for a in algos if a.__name__ in names]
 
   return algos

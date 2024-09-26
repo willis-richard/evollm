@@ -55,15 +55,16 @@ if __name__ == "__main__":
         game=common.get_game(args.game))
 
     populations = mp.play()
+    # pprint.pprint(populations)
     print(mp.winning_strategy_name)
     print(len(mp))
     return mp.winning_strategy_name
 
   num_cpu = 4
-  seeds = np.random.randint(0, 2**32, size=args.iterations)
+  seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=args.iterations)
 
   with Pool(processes=num_cpu) as pool:
-      results = pool.map(run_moran_process, seeds)
+    results = pool.map(run_moran_process, seeds)
 
   winner_counts = {}
   for winner in results:
@@ -71,7 +72,6 @@ if __name__ == "__main__":
 
   print(winner_counts)
 
-  # pprint.pprint(populations)
   # for row in mp.score_history:
   #   print([round(element, 1) for element in row])
 
