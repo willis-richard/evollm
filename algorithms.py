@@ -6,16 +6,22 @@ from common import Attitude
 import axelrod as axl
 
 
-def create_classes(module_name: str, suffix: str = "", population: list[str] | None = None) -> tuple[type[common.LLM_Strategy], type[common.LLM_Strategy], type[common.LLM_Strategy]]:
+def load_algorithms(module_name: str, keep: float | None = None) -> list[type[common.LLM_Strategy]]:
   module = importlib.import_module(module_name)
 
-  player_classes = [
+  algos = [
     cls for name, cls in inspect.getmembers(module)
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
 
-  if population is not None:
-    player_classes = [p for p in player_classes if p.__name__ in population]
+  if keep is not None:
+    keep_n = int(len(algos) / 3 * keep)
+    names = module.Aggressive_ranks[keep_n] + module.Cooperative_ranks[keep_n] + module.Neutral_ranks[keep_n]
+    algos = [a for a in algos if a.__name__ in names]
+
+  return algos
+
+def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> tuple[type[common.LLM_Strategy], type[common.LLM_Strategy], type[common.LLM_Strategy]]:
 
   class StrategySampler(common.LLM_Strategy):
     def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -28,16 +34,16 @@ def create_classes(module_name: str, suffix: str = "", population: list[str] | N
   class Aggressive(StrategySampler):
     attitude = Attitude.AGGRESSIVE
 
-    strategies = [p for p in player_classes if f"Aggressive{suffix}" in p.__name__]
+    strategies = [a for a in algos if f"Aggressive{suffix}" in a.__name__]
 
   class Cooperative(StrategySampler):
     attitude = Attitude.COOPERATIVE
 
-    strategies = [p for p in player_classes if f"Cooperative{suffix}" in p.__name__]
+    strategies = [a for a in algos if f"Cooperative{suffix}" in a.__name__]
 
   class Neutral(StrategySampler):
     attitude = Attitude.NEUTRAL
 
-    strategies = [p for p in player_classes if f"Neutral{suffix}" in p.__name__]
+    strategies = [a for a in algos if f"Neutral{suffix}" in a.__name__]
 
   return Aggressive, Cooperative, Neutral

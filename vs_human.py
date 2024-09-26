@@ -3,9 +3,10 @@ import json
 import axelrod as axl
 import pandas as pd
 from collections import defaultdict
+import sys
 
 import common
-import strategies
+import algorithms
 
 def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
@@ -58,11 +59,14 @@ if __name__ == "__main__":
 
   players = [c() for c in classes]
   algo_results = defaultdict(dict)
-  population = []
+  ranks = defaultdict(list)
 
-  for suffix in range(1, args.n + 1, 1):
-    for p in strategies.create_classes(args.algo, suffix=f"_{suffix}"):
-      strategy = p()
+  algos = algorithms.load_algorithms(args.algo)
+  max_n = max(a.n for a in algos)
+
+  for n in range(1, max_n + 1):
+    for a in algorithms.create_classes(algos, suffix=f"_{n}"):
+      strategy = a()
       tournament = axl.Tournament(players + [strategy],
                                   turns=args.rounds,
                                   repetitions=3,
@@ -70,19 +74,24 @@ if __name__ == "__main__":
                                   seed=1,
                                   game=common.get_game(args.game))
       results = tournament.play(processes=0)
-      algo_results[repr(strategy)][suffix] = results.scores[-1][0]
+      algo_results[repr(strategy)][n] = results.scores[-1][0]
   for k, v in algo_results.items():
     sorted_s = pd.Series(v).sort_values(ascending=False)
     print(k, sorted_s, sep="\n")
-    for i in range(int(args.n * args.keep)):
-      population.append(f"{k}_{sorted_s.index[i]}")
+    for n in range(max_n):
+      ranks[k].append(f"{k}_{sorted_s.index[n]}")
 
-  print(population)
+  with open(f"{args.algo}.py", "a") as f:
+    for k in ranks:
+      f.write(f"\n\n{k}_ranks = [\n")
+      for r in ranks[k]:
+        f.write(f"'{r}',\n")
+      f.write("]")
 
-  with open("results/population.json", "w") as f:
-    json.dump(population, f)
+  del sys.modules[args.algo]
+  algos = algorithms.load_algorithms(args.algo, keep=args.keep)
 
-  Aggressive, Cooperative, Neutral = strategies.create_classes(args.algo, population=population)
+  Aggressive, Cooperative, Neutral = algorithms.create_classes(algos)
   tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
                               turns=args.rounds,
                               repetitions=10,
@@ -94,7 +103,6 @@ if __name__ == "__main__":
   #   print(round(average_score_per_turn * args.rounds, 1))
 
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
-  print(f"Results for {suffix}:")
   print(df)
 
   plot = axl.Plot(results)

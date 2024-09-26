@@ -12,12 +12,7 @@ import numpy as np
 import pandas as pd
 
 import common
-
-# Configure logging
-logging.basicConfig(filename="llm.log", filemode="w", level=logging.INFO)
-
-logging.getLogger("openai._base_client").setLevel(logging.WARN)
-logging.getLogger("httpx").setLevel(logging.WARN)
+import algorithms
 
 
 def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) -> dict[tuple[common.Attitude, common.Attitude], float]:
@@ -75,24 +70,10 @@ def parse_arguments() -> argparse.Namespace:
 if __name__ == "__main__":
   args = parse_arguments()
 
-  module = importlib.import_module(args.algo)
+  algos = algorithms.load_algorithms(args.algo, keep=args.keep)
 
-  player_classes = [
-    cls for name, cls in inspect.getmembers(module)
-    if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
-  ]
-
-  # player_classes = [p for p in player_classes if "Neutral" not in p.__name__]
-
-  if args.population:
-    with open("results/population.json", "r") as f:
-      population = json.load(f)
-    player_classes = [p for p in player_classes if p.__name__ in population]
-
-  # N.B. use Player() rather Player, aka instances not classes
-  # otherwise gives the error "Player.clone() missing 1 required positional argument: 'self'"
-  players = [p() for p in player_classes]
-  print(players)
+  players = [a() for a in algos]
+  print(f"Players: {players}")
 
   tournament = axl.Tournament(
     players,
@@ -105,9 +86,7 @@ if __name__ == "__main__":
   results = tournament.play(processes=0, filename="results_full.txt")
   results.write_summary("results_summary.txt")
 
-  print(results.normalised_cooperation)
   print("Normalised cooperation\n", analyse_by_genome(results.normalised_cooperation, players))
-  print(results.payoffs)
   print("Payoff\n", analyse_by_genome(results.payoffs, players))
 
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
