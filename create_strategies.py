@@ -1,5 +1,7 @@
 import argparse
 import ast
+import pandas as pd
+from collections import defaultdict
 import logging
 import os
 import textwrap
@@ -11,6 +13,7 @@ import axelrod as axl
 import openai
 
 import common
+import algorithms
 from common import Attitude
 
 # Configure logging
@@ -336,13 +339,16 @@ def parse_arguments() -> argparse.Namespace:
       help="Probability that an action is flipped")
   parser.add_argument(
       "--resume", action="store_true", help="If generation crashed, continue")
+  parser.add_argument(
+      "--algo",
+      type=str,
+      default="output",
+      help="Name of the python module to call the LLM algorithms")
 
   return parser.parse_args()
 
 
-if __name__ == "__main__":
-  args = parse_arguments()
-
+def create_strategies(args: argparse.Namespace):
   if args.llm == "openai":
     client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
   elif args.llm == "anthropic":
@@ -373,7 +379,62 @@ from common import Attitude, auto_update_score, LLM_Strategy""")
   strategies_to_create: list[tuple[Attitude, int]] = [(a, n) for n in range(1, 1 + args.n) for a in Attitude if (a, n) not in done_classes]
   game = common.get_game(args.game)
 
-  with open("output.py", "a", encoding="utf8") as f:
+  with open(f"{args.algo}.py", "a", encoding="utf8") as f:
     for a, n in strategies_to_create:
       generate_class(f, client, a, n, args.temp, game,
                      args.rounds, args.noise)
+
+
+def rank_strategies(args: argparse.Namespace):
+  classes = [axl.Cooperator,
+          axl.Defector,
+          axl.Random,
+          axl.TitForTat,
+          axl.Grudger,
+          axl.CyclerDDC,
+          axl.CyclerCCD,
+          axl.GoByMajority,
+          axl.SuspiciousTitForTat,
+          axl.Prober,
+          # axl.OriginalGradual,
+          axl.WinStayLoseShift,
+          ]
+
+  players = [c() for c in classes]
+  algo_results = defaultdict(dict)
+  ranks = defaultdict(list)
+
+  algos = algorithms.load_algorithms(args.algo)
+  max_n = max(a.n for a in algos)
+
+  for n in range(1, max_n + 1):
+    for a in algorithms.create_classes(algos, suffix=f"_{n}"):
+      strategy = a()
+      tournament = axl.Tournament(players + [strategy],
+                                  turns=args.rounds,
+                                  repetitions=3,
+                                  noise=args.noise,
+                                  seed=1,
+                                  game=common.get_game(args.game))
+      results = tournament.play(processes=0)
+      algo_results[repr(strategy)][n] = results.scores[-1][0]
+  for k, v in algo_results.items():
+    sorted_s = pd.Series(v).sort_values(ascending=False)
+    print(k, sorted_s, sep="\n")
+    for n in range(max_n):
+      ranks[k].append(f"{k}_{sorted_s.index[n]}")
+
+  with open(f"{args.algo}.py", "a", encoding="utf8") as f:
+    for k in ranks:
+      f.write(f"\n\n{k}_ranks = [\n")
+      for r in ranks[k]:
+        f.write(f"'{r}',\n")
+      f.write("]")
+
+
+if __name__ == "__main__":
+  parsed_args = parse_arguments()
+
+  create_strategies(parsed_args)
+
+  rank_strategies(parsed_args)

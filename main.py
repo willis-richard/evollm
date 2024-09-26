@@ -66,12 +66,7 @@ def parse_arguments() -> argparse.Namespace:
   return parser.parse_args()
 
 
-
-if __name__ == "__main__":
-  args = parse_arguments()
-
-  algos = algorithms.load_algorithms(args.algo, keep=args.keep)
-
+def play_vs_llm_strats(args: argparse.Namespace, algos:list[type[common.LLM_Strategy]]) -> None:
   players = [a() for a in algos]
   print(f"Players: {players}")
 
@@ -91,3 +86,49 @@ if __name__ == "__main__":
 
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
+
+
+def play_beaufils(args: argparse.Namespace, algos:list[type[common.LLM_Strategy]]) -> None:
+  classes = [axl.Cooperator,
+          axl.Defector,
+          axl.Random,
+          axl.TitForTat,
+          axl.Grudger,
+          axl.CyclerDDC,
+          axl.CyclerCCD,
+          axl.GoByMajority,
+          axl.SuspiciousTitForTat,
+          axl.Prober,
+          # axl.OriginalGradual,
+          axl.WinStayLoseShift,
+          ]
+
+  players = [c() for c in classes]
+
+  Aggressive, Cooperative, Neutral = algorithms.create_classes(algos)
+  tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
+                              turns=args.rounds,
+                              repetitions=10,
+                              noise=args.noise,
+                              seed=1)
+  results = tournament.play()
+
+  # for average_score_per_turn in results.payoff_matrix[-2]:
+  #   print(round(average_score_per_turn * args.rounds, 1))
+
+  df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
+  print(df)
+
+  plot = axl.Plot(results)
+  p = plot.boxplot()
+  p.savefig("fig.png")
+
+
+if __name__ == "__main__":
+  parsed_args = parse_arguments()
+
+  algos = algorithms.load_algorithms(parsed_args.algo, keep=parsed_args.keep)
+
+  play_vs_llm_strats(parsed_args, algos)
+
+  play_beaufils(parsed_args, algos)
