@@ -57,7 +57,7 @@ def parse_arguments() -> argparse.Namespace:
   return parser.parse_args()
 
 
-def play_vs_llm_strats(algos:list[type[common.LLM_Strategy]]) -> None:
+def play_vs_llm_strats(algos: list[type[common.LLM_Strategy]]) -> None:
   players = [a() for a in algos]
   print(f"Players: {players}")
 
@@ -65,7 +65,7 @@ def play_vs_llm_strats(algos:list[type[common.LLM_Strategy]]) -> None:
     players,
     game=common.get_game(algos[0].game),
     turns=algos[0].rounds,
-    repetitions=5,
+    repetitions=20,
     noise=algos[0].noise,
   )
 
@@ -100,10 +100,10 @@ def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
   tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
                               game=common.get_game(algos[0].game),
                               turns=algos[0].rounds,
-                              repetitions=10,
+                              repetitions=20,
                               noise=algos[0].noise,
                               seed=1)
-  results = tournament.play()
+  results = tournament.play(processes=0)
 
   # for average_score_per_turn in results.payoff_matrix[-2]:
   #   print(round(average_score_per_turn * args.rounds, 1))

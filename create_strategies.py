@@ -23,9 +23,9 @@ logging.getLogger("openai._base_client").setLevel(logging.DEBUG)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def create_game_information(game: axl.Game, rounds: int, noise: float | None) -> str:
+def create_game_information(game: axl.Game, rounds: int, noise: float) -> str:
   R, P, S, T = game.RPST()
-  noise_str = "\n\nActions are noisy: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise is not None else ""
+  noise_str = f"\n\nActions are noisy: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise > 0 else ""
 
   return f"""The game lasts for {rounds} rounds and has the following payoffs:
 
@@ -35,10 +35,10 @@ def create_game_information(game: axl.Game, rounds: int, noise: float | None) ->
 - If you play D and your opponent plays D, you both score {P}.{noise_str}"""
 
 
-def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float | None) -> str:
+def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float) -> str:
 
   system = "You are an AI assistant with expertise in game theory."
-  prompt = f"Create a strategy that plays {attitude.lower()}ly to maximise your total payoff in an iterated normal-form game. The strategy should be simple and take into account the game payoffs. Write the strategy in natural language only, but be specific."
+  prompt = f"Create a strategy that plays {attitude.lower()}ly to maximise your total payoff in an iterated normal-form game. Consider your opponent competent, with the potential to employ aggressive, cooperative or neutral approaches. Additionally, expect them to adapt their strategy in response to your play. The strategy should be simple and take into account the game payoffs. Write the strategy in natural language only, but be specific."
   prompt += "\n\n" + create_game_information(game, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
@@ -48,7 +48,9 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
   prompt = f"""Please critique the proposed strategy:
 - Verify that it is simple and that it behaves {attitude.lower()}ly.
-- Identify any strategical or logical errors, such as unreachable conditions."""
+- Identify any strategical or logical errors, such as unreachable conditions.
+- Consider which opponent behaviours it may struggle against.
+- Propose ways to improve the performance."""
 
   messages += [
     { "role": "assistant",
@@ -153,8 +155,8 @@ def add_indent(text: str) -> str:
   return "\n".join("  " + line for line in text.splitlines())
 
 
-def create_algorithm_prompt(strategy: str, game: axl.Game, rounds: int, noise: float | None) -> str:
-  noise_str = "You do not need to implement the noise, as this is handled by the match implementation. " if noise is not None else ""
+def create_algorithm_prompt(strategy: str, game: axl.Game, rounds: int, noise: float) -> str:
+  noise_str = "You do not need to implement the noise, as this is handled by the match implementation. " if noise > 0 else ""
 
   return f"""Implement the following strategy description as an algorithm using python 3.11 and the Axelrod library.
 
@@ -185,7 +187,7 @@ No other libraries are to be used, and no subfunctions are to be defined. Some a
 
 def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
                        strategy: str, game: axl.Game, rounds: int,
-                       noise: float | None) -> str:
+                       noise: float) -> str:
 
   system = "You are an AI assistant with expertise in game theory and programming. Your task is to implement the strategy description provided by the user as an algorithm."
   prompt = create_algorithm_prompt(strategy, game, rounds, noise)
@@ -234,7 +236,7 @@ def format_comment(text, width=78):
 
 
 def write_class(description: str, attitude: Attitude, n: int, game: axl.Game,
-                rounds: int, noise: float | None, algorithm: str) -> str:
+                rounds: int, noise: float, algorithm: str) -> str:
   return f"""{format_comment(description)}
 
 class {attitude}_{n}(LLM_Strategy):
@@ -353,11 +355,11 @@ def create_strategies(args: argparse.Namespace):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"),)
 
   if args.resume:
-    algos = algorithms.load_algorithms(args.algos)
+    algos = algorithms.load_algorithms(args.algo)
     done_classes = set([(c.attitude, c.n) for c in algos])
   else:
-    if os.path.exists(f"{args.algos}.py"):
-      assert False, f"{args.algos}.py exists and will be overwritten, delete or rename the file"
+    if os.path.exists(f"{args.algo}.py"):
+      assert False, f"{args.algo}.py exists and will be overwritten, delete or rename the file"
 
     done_classes = set([])
 

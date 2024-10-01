@@ -4,6 +4,16 @@ from enum import StrEnum
 from functools import partial, wraps
 
 
+def positive_int(x):
+  try:
+    x = int(x)
+  except ValueError:
+    raise argparse.ArgumentTypeError(f"{x} not an integer")
+
+  if x < 1:
+    raise argparse.ArgumentTypeError(f"{x} not in range [1, inf]")
+  return x
+
 def restricted_float(x, lower: float, upper: float):
   try:
     x = float(x)

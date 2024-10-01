@@ -32,7 +32,7 @@ class Aggressive_1(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -86,7 +86,7 @@ class Cooperative_1(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -151,7 +151,7 @@ class Neutral_1(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -221,7 +221,7 @@ class Aggressive_2(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -288,7 +288,7 @@ class Cooperative_2(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -372,7 +372,7 @@ class Neutral_2(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -435,7 +435,7 @@ class Aggressive_3(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -499,7 +499,7 @@ class Cooperative_3(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -570,7 +570,7 @@ class Neutral_3(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -646,7 +646,7 @@ class Aggressive_4(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -731,7 +731,7 @@ class Cooperative_4(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -806,7 +806,7 @@ class Neutral_4(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -868,7 +868,7 @@ class Aggressive_5(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -939,7 +939,7 @@ class Cooperative_5(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1031,7 +1031,7 @@ class Neutral_5(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -1091,7 +1091,7 @@ class Aggressive_6(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1159,7 +1159,7 @@ class Cooperative_6(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1235,7 +1235,7 @@ class Neutral_6(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1314,7 +1314,7 @@ class Aggressive_7(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1381,7 +1381,7 @@ class Cooperative_7(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1453,7 +1453,7 @@ class Neutral_7(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -1507,7 +1507,7 @@ class Aggressive_8(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -1580,7 +1580,7 @@ class Cooperative_8(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1654,7 +1654,7 @@ class Neutral_8(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1721,7 +1721,7 @@ class Aggressive_9(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -1782,7 +1782,7 @@ class Cooperative_9(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1851,7 +1851,7 @@ class Neutral_9(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1924,7 +1924,7 @@ class Aggressive_10(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1995,7 +1995,7 @@ class Cooperative_10(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -2084,7 +2084,7 @@ class Neutral_10(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = None
+  noise = 0
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -2117,3 +2117,43 @@ class Neutral_10(LLM_Strategy):
           return axl.Action.D if self._random.random() < 0.8 else axl.Action.C
       else:
           return axl.Action.C if self._random.random() < 0.5 else axl.Action.D
+
+
+Aggressive_ranks = [
+'Aggressive_10',
+'Aggressive_2',
+'Aggressive_5',
+'Aggressive_7',
+'Aggressive_6',
+'Aggressive_1',
+'Aggressive_3',
+'Aggressive_9',
+'Aggressive_8',
+'Aggressive_4',
+]
+
+Cooperative_ranks = [
+'Cooperative_1',
+'Cooperative_4',
+'Cooperative_10',
+'Cooperative_5',
+'Cooperative_3',
+'Cooperative_9',
+'Cooperative_8',
+'Cooperative_2',
+'Cooperative_7',
+'Cooperative_6',
+]
+
+Neutral_ranks = [
+'Neutral_4',
+'Neutral_9',
+'Neutral_6',
+'Neutral_8',
+'Neutral_7',
+'Neutral_1',
+'Neutral_5',
+'Neutral_10',
+'Neutral_3',
+'Neutral_2',
+]

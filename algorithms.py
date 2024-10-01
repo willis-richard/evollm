@@ -6,7 +6,7 @@ from common import Attitude
 import axelrod as axl
 
 
-def load_algorithms(module_name: str, keep: float | None = None) -> list[type[common.LLM_Strategy]]:
+def load_algorithms(module_name: str, keep: float=1) -> list[type[common.LLM_Strategy]]:
   module = importlib.import_module(module_name)
 
   algos = [
@@ -14,12 +14,13 @@ def load_algorithms(module_name: str, keep: float | None = None) -> list[type[co
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
 
-  if keep is not None:
+  if keep < 1:
     keep_n = int(len(algos) / 3 * keep)
     names = module.Aggressive_ranks[:keep_n] + module.Cooperative_ranks[:keep_n] + module.Neutral_ranks[:keep_n]
     algos = [a for a in algos if a.__name__ in names]
 
   return algos
+
 
 def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> tuple[type[common.LLM_Strategy], type[common.LLM_Strategy], type[common.LLM_Strategy]]:
 

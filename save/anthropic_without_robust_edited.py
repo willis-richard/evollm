@@ -31,25 +31,25 @@ class Aggressive_1(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.D
-
+      
       if len(self.history) >= 990:
           return axl.Action.D
-
+      
       if len(opponent.history) >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.C
-
+      
       if len(self.history) >= 10 and all(move == axl.Action.D for move in self.history[-10:]):
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       return axl.Action.D
 
 # Here's a revised, simpler cooperative strategy that takes into account the
@@ -75,22 +75,22 @@ class Cooperative_1(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 3 and opponent.history[-3:].count(axl.Action.D) > 2:
           return axl.Action.D
-
+      
       if opponent.history[-1] == axl.Action.C:
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Thank you for the opportunity to refine the strategy. Here's a revised version
@@ -118,25 +118,25 @@ class Neutral_1(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 995:
           return axl.Action.D
-
+      
       if (len(self.history) + 1) % 50 == 0:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 3:
           if all(move == axl.Action.D for move in opponent.history[-3:]):
               return axl.Action.D
           if all(move == axl.Action.C for move in opponent.history[-3:]):
               return axl.Action.C
-
+      
       if len(opponent.history) >= 10:
           c_ratio = opponent.history[-10:].count(axl.Action.C) / 10
           if c_ratio > 0.6:
@@ -145,7 +145,7 @@ class Neutral_1(LLM_Strategy):
               return axl.Action.D
           else:
               return opponent.history[-1]
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -170,41 +170,41 @@ class Aggressive_2(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           self.defect_count = 0
           self.reset_counter = 0
-
+  
       if len(self.history) < 5:
           return axl.Action.D
-
+  
       if len(self.history) >= 980:
           return axl.Action.D
-
+  
       if opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+  
       if len(self.history) >= 50:
           my_score, _ = self.total_scores(self.history[-50:], opponent.history[-50:])
           if my_score / 50 < 2:
               self.defect_count = 3
-
+  
       if self.defect_count > 0:
           self.defect_count -= 1
           return axl.Action.D
-
+  
       self.reset_counter += 1
       if self.reset_counter >= 99:
           if self.reset_counter == 100:
               self.reset_counter = 0
           return axl.Action.C
-
+  
       if opponent.history[-1] == axl.Action.C:
           return axl.Action.C
-
+  
       return axl.Action.D
 
 # Here's a revised, simplified strategy that takes into account the feedback:
@@ -236,31 +236,31 @@ class Cooperative_2(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       rounds_played = len(self.history)
       total_rounds = self.match_attributes.get("length")
-
+      
       if total_rounds is not None and total_rounds - rounds_played <= 10:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       recent_history = opponent.history[-20:]
       if len(recent_history) == 20:
           defection_rate = recent_history.count(axl.Action.D) / 20
           if defection_rate > 0.6:
               return axl.Action.D
-
+      
       if (rounds_played + 1) % 100 == 0:
           return axl.Action.C
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -291,27 +291,27 @@ class Neutral_2(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round > 990:
           return axl.Action.D
-
+      
       if current_round % 100 == 0:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       if 2 <= current_round <= 10:
           return opponent.history[-1]
-
+      
       if current_round % 10 == 0:
           last_ten_rounds = opponent.history[-10:]
           if last_ten_rounds.count(axl.Action.C) >= 6:
@@ -320,7 +320,7 @@ class Neutral_2(LLM_Strategy):
               return axl.Action.D
           else:
               return opponent.history[-1]
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -349,50 +349,50 @@ class Aggressive_3(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.behind_aggressive_rounds = 0
           self.periodic_aggressive_rounds = 0
-
+  
       current_round = len(self.history) + 1
       total_rounds = 1000
-
+  
       # First 50 rounds: Defect
       if current_round <= 50:
           return axl.Action.D
-
+  
       # Last 50 rounds: Defect
       if current_round > total_rounds - 50:
           return axl.Action.D
-
+  
       # If score is more than 50 points behind opponent's
       if self.score <= opponent.score - 50:
           self.behind_aggressive_rounds = 20
-
+      
       if self.behind_aggressive_rounds > 0:
           self.behind_aggressive_rounds -= 1
           return axl.Action.D
-
+  
       # Every 100th round: Defect for this round and next 4 rounds
       if current_round % 100 == 0:
           self.periodic_aggressive_rounds = 4
           return axl.Action.D
-
+  
       if self.periodic_aggressive_rounds > 0:
           self.periodic_aggressive_rounds -= 1
           return axl.Action.D
-
+  
       # If opponent defected in the previous round
       if opponent.history and opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+  
       # If opponent cooperated in the previous round
       if opponent.history and opponent.history[-1] == axl.Action.C:
           return self._random.random_choice(0.9)
-
+  
       # Default action: Cooperate
       return axl.Action.C
 
@@ -422,19 +422,19 @@ class Cooperative_3(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) == 999:  # This is the 1000th round
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -465,31 +465,31 @@ class Neutral_3(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       round_number = len(self.history) + 1
-
+      
       if round_number % 50 == 0:
           return self._random.random_choice()
-
+      
       if len(self.history) >= 3 and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.D
-
+      
       last_ten_rounds = min(10, len(self.history))
       recent_opponent_history = opponent.history[-last_ten_rounds:]
       opponent_cooperation_rate = recent_opponent_history.count(axl.Action.C) / last_ten_rounds
-
+      
       if opponent_cooperation_rate >= 0.7:
           return axl.Action.C
-
+      
       if opponent_cooperation_rate <= 0.3:
           return axl.Action.D
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -519,7 +519,7 @@ class Aggressive_4(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -529,15 +529,15 @@ class Aggressive_4(LLM_Strategy):
           self.tit_for_tat_mode = False
           self.reassessment_strategy = None
           self.reassessment_rounds = 0
-
+  
       if len(self.history) < 5:
           return axl.Action.D
-
+  
       if len(self.history) >= 995:
           return axl.Action.D
-
+  
       current_round = len(self.history)
-
+  
       if current_round - self.last_reassessment == 25:
           self.last_reassessment = current_round
           recent_coop_rate = opponent.history[-25:].count(axl.Action.C) / 25
@@ -548,14 +548,14 @@ class Aggressive_4(LLM_Strategy):
           else:
               self.reassessment_strategy = None
           self.reassessment_rounds = 5
-
+  
       if self.reassessment_rounds > 0:
           self.reassessment_rounds -= 1
           if self.reassessment_strategy == axl.Action.D:
               return axl.Action.D
           elif self.reassessment_strategy == 'tit_for_tat':
               return opponent.history[-1]
-
+  
       if current_round - self.last_score_check == 100:
           self.last_score_check = current_round
           avg_score = self.score / current_round
@@ -563,10 +563,10 @@ class Aggressive_4(LLM_Strategy):
               self.tit_for_tat_mode = True
           else:
               self.tit_for_tat_mode = False
-
+  
       if self.tit_for_tat_mode:
           return opponent.history[-1]
-
+  
       recent_coop_rate = opponent.history[-10:].count(axl.Action.C) / 10
       if recent_coop_rate > 0.6:
           return axl.Action.D
@@ -599,28 +599,28 @@ class Cooperative_4(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 995:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       if self.history[-1] == axl.Action.D:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 20:
           recent_moves = opponent.history[-20:]
           defection_rate = recent_moves.count(axl.Action.D) / len(recent_moves)
           if defection_rate > 0.7:
               return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised, simpler strategy that takes into account the feedback:  1.
@@ -647,22 +647,22 @@ class Neutral_4(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if 990 < len(self.history) <= 1000:
           return axl.Action.D
-
+      
       if opponent.history[-3:].count(axl.Action.D) == 3:
           return axl.Action.D
-
+      
       if len(self.history) % 50 == 0:
           return axl.Action.C
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -697,38 +697,38 @@ class Aggressive_5(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.catch_up_rounds = 0
-
+  
       if len(self.history) < 10:
           return axl.Action.D
-
+  
       if len(self.history) > 950:
           return axl.Action.D
-
+  
       if len(opponent.history) >= 3 and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.D
-
+  
       if self.score < opponent.score - 30:
           if self.catch_up_rounds < 5:
               self.catch_up_rounds += 1
               return axl.Action.D
       else:
           self.catch_up_rounds = 0
-
+  
       if (len(self.history) + 1) % 100 == 0 or len(self.history) % 100 in [1, 2]:
           return axl.Action.D
-
+  
       if axl.Action.D in opponent.history[-2:]:
           return axl.Action.D
-
+  
       if opponent.history[-2:] == [axl.Action.C, axl.Action.C]:
           return self._random.random_choice(0.7)
-
+  
       return axl.Action.C
 
 # Here's a revised, simplified strategy that takes into account the feedback:
@@ -760,19 +760,19 @@ class Cooperative_5(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       if len(self.history) == 999:  # This is the last round (1000th move)
           return axl.Action.C
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -800,22 +800,22 @@ class Neutral_5(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       last_five_rounds = min(5, len(self.history))
       opponent_defections = opponent.history[-last_five_rounds:].count(axl.Action.D)
-
+      
       if opponent_defections >= 3:
           return axl.Action.D
-
+      
       if opponent.history:
           return opponent.history[-1]
-
+      
       return axl.Action.C
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -844,27 +844,27 @@ class Aggressive_6(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if len(self.history) < 3:
           return axl.Action.D
-
+      
       if len(self.history) > 989:
           return axl.Action.D
-
+      
       if (len(self.history) + 1) % 50 == 0:
           return axl.Action.C
-
+      
       if len(self.history) >= 5:
           last_five = opponent.history[-5:]
           if last_five.count(axl.Action.C) >= 3:
               return axl.Action.D
-
+          
           if last_five.count(axl.Action.D) >= 4:
               return axl.Action.C
-
+      
       return axl.Action.D
 
 # Here's a revised, simpler strategy that takes into account the feedback:  1.
@@ -886,22 +886,22 @@ class Cooperative_6(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) > 990:
           return axl.Action.C
-
+      
       if self.history[-2:].count(axl.Action.D) > 0:
           return axl.Action.C
-
+      
       if opponent.history[-2:].count(axl.Action.D) == 2:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -931,7 +931,7 @@ class Neutral_6(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -947,11 +947,11 @@ class Neutral_6(LLM_Strategy):
               action = axl.Action.C
           else:
               action = opponent.history[-1]
-
+      
       # 5% chance to play the opposite move
       if self._random.random() < 0.05:
           return axl.Action.C if action == axl.Action.D else axl.Action.D
-
+      
       return action
 
 # Here's a revised strategy that takes into account the feedback while
@@ -984,7 +984,7 @@ class Aggressive_7(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -993,25 +993,25 @@ class Aggressive_7(LLM_Strategy):
 
       if len(self.history) < 10:
           return axl.Action.D
-
+      
       if len(self.history) >= self.match_attributes['length'] - 50:
           return axl.Action.D
-
+      
       if opponent.history[-3:] == [axl.Action.C, axl.Action.C, axl.Action.C]:
           self.exploit_start = len(self.history)
 
       if len(self.history) - self.exploit_start < 10:
           return axl.Action.D
-
+      
       if opponent.score - self.score >= 50:
           return axl.Action.C
-
+      
       if (len(self.history) + 1) % 75 == 0:
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       return axl.Action.D
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -1044,33 +1044,33 @@ class Cooperative_7(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       rounds_played = len(self.history)
       opponent_c_ratio = opponent.history.cooperations / rounds_played if rounds_played > 0 else 0
-
+      
       # Condition 2: Play C if ANY of these conditions are met
       if (opponent.history[-1] == axl.Action.C or
           opponent_c_ratio >= 0.7 or
           rounds_played > 990):
           return axl.Action.C
-
+      
       # Condition 4: Play C if D was played in the previous round (unless in last 10 rounds)
       if self.history[-1] == axl.Action.D and rounds_played <= 990:
           return axl.Action.C
-
+      
       # Condition 3: Play D if ALL of these conditions are met
       opponent_d_ratio = 1 - opponent_c_ratio
       if (opponent.history[-1] == axl.Action.D and
           opponent_d_ratio > 0.3 and
           rounds_played <= 990):
           return axl.Action.D
-
+      
       # Default to C if none of the above conditions are met
       return axl.Action.C
 
@@ -1105,19 +1105,19 @@ class Neutral_7(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 991:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 3 and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.D
-
+      
       if len(self.history) % 10 == 1 and len(self.history) > 10:
           last_ten = opponent.history[-10:]
           c_count = last_ten.count(axl.Action.C)
@@ -1125,7 +1125,7 @@ class Neutral_7(LLM_Strategy):
               return axl.Action.C
           elif c_count <= 3:
               return axl.Action.D
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -1152,30 +1152,30 @@ class Aggressive_8(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           self.behind_count = 0
-
+      
       if len(self.history) < 5:
           return axl.Action.D
-
+      
       opponent_recent = opponent.history[-20:]
       opponent_c_ratio = opponent_recent.count(axl.Action.C) / 20
-
+      
       if self.score <= opponent.score - 30:
           self.behind_count = 10
-
+      
       if self.behind_count > 0:
           self.behind_count -= 1
           return axl.Action.D
-
+      
       game_length = self.match_attributes['length']
       if len(self.history) >= game_length - 50:
           return axl.Action.D
-
+      
       if opponent_c_ratio >= 0.75:
           return axl.Action.D
       elif opponent_c_ratio <= 0.25:
@@ -1213,31 +1213,31 @@ class Cooperative_8(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       history_length = len(self.history)
       opponent_history_length = len(opponent.history)
-
+  
       if history_length >= 980:  # 20 or fewer rounds left
           return axl.Action.C
-
+      
       if opponent_history_length >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.C
-
+      
       if opponent_history_length >= 10 and sum(move == axl.Action.D for move in opponent.history[-10:]) > 7:
           return axl.Action.D
-
+      
       if opponent_history_length >= 2:
           if axl.Action.C in opponent.history[-2:]:
               return axl.Action.C
           else:
               return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -1272,32 +1272,32 @@ class Neutral_8(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.c_probability = 0.9
           return axl.Action.C
-
+  
       if len(self.history) % 50 == 0 and len(self.history) > 0:
           c_ratio = opponent.history.cooperations / len(opponent.history)
           if c_ratio > 0.6:
               self.c_probability = min(0.95, self.c_probability + 0.05)
           elif c_ratio < 0.4:
               self.c_probability = max(0.05, self.c_probability - 0.05)
-
+  
       if len(self.history) == 999:
           return axl.Action.D
-
+  
       if opponent.history[-3:].count(axl.Action.D) == 3:
           return axl.Action.D
-
+  
       if opponent.history[-1] == axl.Action.C:
           return self._random.random_choice(self.c_probability)
       elif opponent.history[-1] == axl.Action.D:
           return self._random.random_choice(1 - self.c_probability)
-
+  
       return axl.Action.C
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -1326,31 +1326,31 @@ class Aggressive_9(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.defect_counter = 0
           self.catch_up_counter = 0
-
+  
       if len(self.history) < 10:
           return axl.Action.D
-
+  
       if len(self.history) > 950:
           self.defect_counter = 0
           self.catch_up_counter = 0
           return axl.Action.D
-
+  
       if len(self.history) % 100 == 0:
           self.defect_counter = 3
           self.catch_up_counter = 0
           return axl.Action.D
-
+  
       if self.defect_counter > 0:
           self.defect_counter -= 1
           return axl.Action.D
-
+  
       if self.score < opponent.score - 50:
           if self.catch_up_counter < 20:
               self.catch_up_counter += 1
@@ -1358,10 +1358,10 @@ class Aggressive_9(LLM_Strategy):
               return axl.Action.D
           else:
               self.catch_up_counter = 0
-
+  
       if opponent.history[-3:] == [axl.Action.C, axl.Action.C, axl.Action.C]:
           return axl.Action.C
-
+  
       return axl.Action.D
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -1393,32 +1393,32 @@ class Cooperative_9(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+  
       round_number = len(self.history) + 1
       total_rounds = 1000
-
+  
       if round_number > 990:
           return axl.Action.D
-
+  
       if round_number % 50 == 0:
           return axl.Action.C
-
+  
       opponent_defection_rate = opponent.history.defections / round_number
       if opponent_defection_rate > 0.7:
           return axl.Action.D
-
+  
       if opponent.history[-1] == axl.Action.D:
           if len(opponent.history) >= 3 and all(action == axl.Action.D for action in opponent.history[-3:]):
               return axl.Action.C
           else:
               return axl.Action.D
-
+  
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -1447,7 +1447,7 @@ class Neutral_9(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1455,32 +1455,32 @@ class Neutral_9(LLM_Strategy):
           self.consecutive_opponent_defections = 0
           self.consecutive_self_defections = 0
           return axl.Action.C
-
+  
       if len(self.history) == 999:  # Final round
           return axl.Action.D
-
+  
       if len(self.history) % 50 == 0:  # Every 50 rounds
           if self.score <= opponent.score:
               return axl.Action.C
           else:
               return axl.Action.D
-
+  
       if opponent.history[-1] == axl.Action.D:
           self.consecutive_opponent_defections += 1
       else:
           self.consecutive_opponent_defections = 0
-
+  
       if self.history[-1] == axl.Action.D:
           self.consecutive_self_defections += 1
       else:
           self.consecutive_self_defections = 0
-
+  
       if self.consecutive_opponent_defections >= 3:
           return axl.Action.D
-
+  
       if self.consecutive_self_defections >= 2:
           return axl.Action.C
-
+  
       return opponent.history[-1]  # Mirror opponent's last move
 
 # Here's a revised, simpler, and more aggressive strategy that takes into
@@ -1512,26 +1512,26 @@ class Aggressive_10(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       # First move: Defect
       if not self.history:
           return axl.Action.D
-
+  
       # Last 30 moves: Always defect
       if len(self.history) > 970:
           return axl.Action.D
-
+  
       # If opponent played C for the last three consecutive moves: Cooperate
       if len(opponent.history) >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.C
-
+  
       # Every 50th move: Defect
       if len(self.history) % 50 == 0:
           return axl.Action.D
-
+  
       # Default: Defect
       return axl.Action.D
 
@@ -1562,33 +1562,33 @@ class Cooperative_10(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.punishment_phase = 0
           return axl.Action.C
-
+  
       current_round = len(self.history) + 1
-
+  
       # Condition 2a: Opponent played C for last 3 consecutive rounds
       if len(opponent.history) >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.C
-
+  
       # Condition 2b: Multiple of 50 rounds
       if current_round % 50 == 0:
           return axl.Action.C
-
+  
       # Condition 3a: Last 10 rounds
       if current_round > 990:
           return axl.Action.D
-
+  
       # Condition 3b: In punishment phase
       if self.punishment_phase > 0:
           self.punishment_phase -= 1
           return axl.Action.D
-
+  
       # Condition 3c: Opponent played D in previous round
       if opponent.history and opponent.history[-1] == axl.Action.D:
           # Enter punishment phase
@@ -1600,11 +1600,11 @@ class Cooperative_10(LLM_Strategy):
                   break
           self.punishment_phase = max(2, defection_streak) - 1  # -1 because we're defecting this round
           return axl.Action.D
-
+  
       # Condition 2c: Opponent played C in previous round
       if opponent.history and opponent.history[-1] == axl.Action.C:
           return axl.Action.C
-
+  
       # Condition 5: Default to C if none of the above conditions are met
       return axl.Action.C
 
@@ -1642,13 +1642,13 @@ class Neutral_10(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return self._random.random_choice()
-
+      
       if opponent.history[-1] == axl.Action.C:
           return self._random.random_choice(0.8)
       else:
@@ -1680,19 +1680,19 @@ class Aggressive_11(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if len(self.history) < 10:
           return axl.Action.D
-
+      
       if len(self.history) >= 980:
           return axl.Action.D
-
+      
       if len(opponent.history) >= 3 and opponent.history[-3:] == [axl.Action.C, axl.Action.C, axl.Action.C]:
           return axl.Action.C
-
+      
       return axl.Action.D
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -1720,30 +1720,30 @@ class Cooperative_11(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       # First round: cooperate
       if len(self.history) == 0:
           return axl.Action.C
-
+      
       # Last 10 rounds: defect
       if len(self.history) > 990:
           return axl.Action.D
-
+      
       # If opponent defected in both of the last two rounds: defect
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       # Every 50th round: cooperate
       if len(self.history) % 50 == 0:
           return axl.Action.C
-
+      
       # If opponent defected in the previous round: defect
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       # Otherwise: cooperate
       return axl.Action.C
 
@@ -1773,22 +1773,22 @@ class Neutral_11(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 998:
           return axl.Action.D
-
+      
       if len(self.history) >= 3 and all(move == axl.Action.D for move in self.history[-3:]) and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.C
-
+      
       if len(opponent.history) >= 5 and all(move == axl.Action.C for move in opponent.history[-5:]):
           return axl.Action.C
-
+      
       return opponent.history[-1]
 
 # Here's a revised, simpler, and more aggressive strategy that takes into
@@ -1817,24 +1817,24 @@ class Aggressive_12(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.D
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round >= 991:
           return axl.Action.D
-
+      
       if current_round % 100 == 0:
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.C:
           return axl.Action.D
-
+      
       return axl.Action.D
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -1863,33 +1863,33 @@ class Cooperative_12(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.punishment_phase = 0
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round > 990:
           return axl.Action.D
-
+      
       if current_round % 100 == 0:
           return axl.Action.C
-
+      
       if self.punishment_phase > 0:
           if self.punishment_phase == 1:
               self.punishment_phase = 0
           else:
               self.punishment_phase -= 1
           return axl.Action.D
-
+      
       if opponent.history[-1] == axl.Action.D and self.punishment_phase == 0:
           self.punishment_phase = 2
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback:  1. For the
@@ -1920,19 +1920,19 @@ class Neutral_12(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return self._random.random_choice()
-
+  
       if len(self.history) > 980:
           return axl.Action.D
-
+  
       window = min(20, len(self.history))
       opp_coop_rate = opponent.history[-window:].count(axl.Action.C) / window
-
+  
       if opp_coop_rate >= 0.65:
           return axl.Action.C
       elif opp_coop_rate <= 0.35:
@@ -1973,7 +1973,7 @@ class Aggressive_13(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -1981,41 +1981,41 @@ class Aggressive_13(LLM_Strategy):
           self.consecutive_c_count = 0
           self.opponent_c_count = 0
           self.last_cooperation_rate_check = 0
-
+  
       # First 5 moves: always defect
       if len(self.history) < 5:
           return axl.Action.D
-
+  
       # Last 10 rounds: always defect
       if len(self.history) >= 990:
           return axl.Action.D
-
+  
       # Update consecutive C count and total C count
       if opponent.history[-1] == axl.Action.C:
           self.consecutive_c_count += 1
           self.opponent_c_count += 1
       else:
           self.consecutive_c_count = 0
-
+  
       # Play C if opponent played C for last 3 consecutive rounds
       if self.consecutive_c_count >= 3:
           return axl.Action.C
-
+  
       # Check opponent's overall cooperation rate every 10 rounds
       if len(self.history) % 10 == 0 and len(self.history) > self.last_cooperation_rate_check:
           self.last_cooperation_rate_check = len(self.history)
           cooperation_rate = self.opponent_c_count / len(opponent.history)
           if cooperation_rate > 0.7:
               return axl.Action.C
-
+  
       # Play D if total score is at least 10 points behind the opponent's
       if self.score <= opponent.score - 10:
           return axl.Action.D
-
+  
       # Play C every 40 rounds
       if len(self.history) % 40 == 0:
           return axl.Action.C
-
+  
       # Default: play D
       return axl.Action.D
 
@@ -2046,39 +2046,39 @@ class Cooperative_13(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       round_number = len(self.history) + 1
-
+      
       # Condition 2a: Opponent played C in the previous round
       if opponent.history[-1] == axl.Action.C:
           return axl.Action.C
-
+      
       # Condition 2b: Multiple of 100th round
       if round_number % 100 == 0:
           return axl.Action.C
-
+      
       # Condition 2c: Played D for the last 3 consecutive rounds
       if len(self.history) >= 3 and all(move == axl.Action.D for move in self.history[-3:]):
           return axl.Action.C
-
+      
       # Condition 3a: One of the last 10 rounds
       if round_number > 990:
           return axl.Action.D
-
+      
       # Condition 3b: Opponent played D for 3 or more of the last 5 rounds
       if len(opponent.history) >= 5 and opponent.history[-5:].count(axl.Action.D) >= 3:
           return axl.Action.D
-
+      
       # Condition 3c: Opponent played D in the previous round and haven't yet played 3 consecutive D moves
       if opponent.history[-1] == axl.Action.D and not (len(self.history) >= 3 and self.history[-3:].count(axl.Action.D) == 3):
           return axl.Action.D
-
+      
       # Condition 4: Default to C if none of the above conditions are met
       return axl.Action.C
 
@@ -2106,21 +2106,21 @@ class Neutral_13(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round == 1000:
           return axl.Action.D
-
+      
       if current_round % 50 == 0:
           return axl.Action.C
-
+      
       return opponent.history[-1]
 
 # Here's a revised, simpler, and more clearly defined aggressive strategy,
@@ -2153,35 +2153,35 @@ class Aggressive_14(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           self.total_rounds = 1000
-
+      
       if len(self.history) < 10:
           return axl.Action.D
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round > self.total_rounds - 20:
           return axl.Action.D
-
+      
       opponent_defections = opponent.history.defections
       opponent_defection_rate = opponent_defections / len(opponent.history)
       if opponent_defection_rate > 0.6:
           return axl.Action.D
-
+      
       if current_round % 50 == 0:
           return axl.Action.D
-
+      
       if opponent.score - self.score >= 20:
           return axl.Action.D
-
+      
       if len(opponent.history) >= 2 and axl.Action.D in opponent.history[-2:]:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised, simpler strategy that takes into account the feedback:  1.
@@ -2210,27 +2210,27 @@ class Cooperative_14(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.defect_count = 0
           return axl.Action.C
-
+      
       if len(self.history) > 995:
           return axl.Action.D
-
+      
       if self.defect_count > 0:
           self.defect_count -= 1
           return axl.Action.D
-
+      
       if self.score < 0.7 * opponent.score:
           self.defect_count = 5
-
+      
       if opponent.history[-2:].count(axl.Action.D) == 2:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback and is more
@@ -2263,30 +2263,30 @@ class Neutral_14(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+  
       if len(self.history) >= 991:
           cooperation_rate = opponent.history[980:990].count(axl.Action.C) / 10
           return axl.Action.C if cooperation_rate > 0.6 else axl.Action.D
-
+  
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+  
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.C, axl.Action.C]:
           return axl.Action.C
-
+  
       if len(self.history) % 5 == 0 and len(opponent.history) >= 5:
           opponent_c_count = opponent.history[-5:].count(axl.Action.C)
           if opponent_c_count >= 3:
               return axl.Action.C
           elif opponent.history[-5:].count(axl.Action.D) >= 3:
               return axl.Action.D
-
+  
       return opponent.history[-1] if opponent.history else axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -2317,7 +2317,7 @@ class Aggressive_15(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -2325,31 +2325,31 @@ class Aggressive_15(LLM_Strategy):
           self.consecutive_opponent_c = 0
           self.consecutive_opponent_d = 0
           self.defect_counter = 0
-
+  
       if len(self.history) < 10:
           return axl.Action.D
-
+  
       if len(self.history) >= 950:
           return axl.Action.D
-
+  
       if self.consecutive_opponent_d >= 3:
           self.defect_counter = 3
           self.consecutive_opponent_d = 0
-
+  
       if self.defect_counter > 0:
           self.defect_counter -= 1
           return axl.Action.D
-
+  
       if opponent.score - self.score > 50:
           return axl.Action.D
-
+  
       if (len(self.history) + 1) % 75 == 0:
           return axl.Action.D
-
+  
       if self.consecutive_opponent_c >= 10:
           self.consecutive_opponent_c = 0
           return axl.Action.D
-
+  
       if opponent.history[-1] == axl.Action.C:
           self.consecutive_opponent_c += 1
           self.consecutive_opponent_d = 0
@@ -2384,16 +2384,16 @@ class Cooperative_15(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if len(self.history) < 2:
           return axl.Action.C
-
+      
       if opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Thank you for the opportunity to improve the strategy. Here's a revised
@@ -2423,36 +2423,36 @@ class Neutral_15(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.defect_count = 0
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if current_round > 990:
           return axl.Action.D
-
+      
       if self.defect_count > 0:
           self.defect_count -= 1
           return axl.Action.D
-
+      
       if current_round % 100 == 0:
           return axl.Action.C
-
+      
       if opponent.history[-3:].count(axl.Action.D) == 3:
           return axl.Action.D
-
+      
       if current_round % 50 == 0:
           my_score, _ = self.total_scores(self.history, opponent.history)
           always_defect_score = 5 * opponent.history.cooperations + opponent.history.defections
           if my_score < always_defect_score - 25:
               self.defect_count = 5
               return axl.Action.D
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback while
@@ -2480,43 +2480,43 @@ class Aggressive_16(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.catch_up_defect = 0
           self.defect_count = 0
-
+  
       if len(self.history) < 50:
           return axl.Action.D
-
+  
       if len(self.history) >= 950:
           return axl.Action.D
-
+  
       if self.score + 30 < opponent.score:
           self.catch_up_defect = 20
-
+      
       if self.catch_up_defect > 0:
           self.catch_up_defect -= 1
           return axl.Action.D
-
+  
       if len(self.history) % 100 == 99:
           self.defect_count = 5
-
+      
       if self.defect_count > 0:
           self.defect_count -= 1
           return axl.Action.D
-
+  
       if len(opponent.history) >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.D
-
+  
       if len(opponent.history) >= 2 and axl.Action.D in opponent.history[-2:]:
           return axl.Action.D
-
+  
       if len(opponent.history) >= 2 and all(move == axl.Action.C for move in opponent.history[-2:]):
           return axl.Action.C
-
+  
       return axl.Action.D
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -2551,36 +2551,36 @@ class Cooperative_16(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.punishment_phase = 0
-
+  
       current_round = len(self.history) + 1
       opponent_history_length = len(opponent.history)
-
+      
       if current_round > 980:
           return axl.Action.C
-
+      
       if opponent_history_length >= 10 and all(move == axl.Action.D for move in opponent.history[-10:]):
           return axl.Action.D
-
+      
       if self.punishment_phase > 0:
           self.punishment_phase -= 1
           return axl.Action.D
-
+      
       if opponent_history_length >= 5 and all(move == axl.Action.D for move in opponent.history[-5:]):
           self.punishment_phase = 5
           return axl.Action.D
-
+      
       if current_round % 10 == 0:
           return axl.Action.C
-
+      
       if opponent_history_length > 0:
           return opponent.history[-1]
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -2611,19 +2611,19 @@ class Neutral_16(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) == 999:  # Final round
           return axl.Action.D
-
+      
       if len(self.history) % 50 == 0:
           return axl.Action.C
-
+      
       if len(self.history) >= 20:
           recent_history = opponent.history[-20:]
           cooperation_rate = recent_history.count(axl.Action.C) / 20
@@ -2631,10 +2631,10 @@ class Neutral_16(LLM_Strategy):
               return axl.Action.C
           elif cooperation_rate <= 0.25:
               return axl.Action.D
-
+      
       if len(opponent.history) >= 3 and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.D
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -2665,7 +2665,7 @@ class Aggressive_17(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
@@ -2674,31 +2674,31 @@ class Aggressive_17(LLM_Strategy):
           self.catch_up_rounds = 0
           self.coop_attempt_rounds = 0
           self.last_50_rounds_start = 0
-
+  
       if len(self.history) < 10:
           return axl.Action.D
-
+  
       # Update cooperation rate after each round
       self.opponent_coop_rate = opponent.history.cooperations / len(opponent.history)
-
+  
       if len(self.history) % 50 == 0:
           self.last_50_rounds_start = len(self.history) - 50
           recent_coop_rate = opponent.history[-50:].count(axl.Action.C) / 50
           self.opponent_coop_rate = recent_coop_rate
-
+  
       if len(self.history) >= 950:
           return axl.Action.D
-
+  
       if opponent.score - self.score > 50:
           self.catch_up_rounds = 20
-
+      
       if self.catch_up_rounds > 0:
           self.catch_up_rounds -= 1
           return axl.Action.D
-
+  
       if self.opponent_coop_rate > 0.7:
           return axl.Action.D
-
+  
       if self.opponent_coop_rate < 0.3:
           if self.coop_attempt_rounds < 5:
               self.coop_attempt_rounds += 1
@@ -2710,7 +2710,7 @@ class Aggressive_17(LLM_Strategy):
                   return axl.Action.D
               else:
                   self.coop_attempt_rounds = 0
-
+  
       return opponent.history[-1]
 
 # Here's a revised strategy taking into account the feedback:  1. Start by
@@ -2741,35 +2741,35 @@ class Cooperative_17(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.in_forgiveness = False
           return axl.Action.C
-
+      
       if len(self.history) > 990:
           return axl.Action.D
-
+      
       opponent_c_rate = opponent.history.cooperations / len(opponent.history)
-
+      
       if self.in_forgiveness:
           self.in_forgiveness = False
           return axl.Action.C
-
+      
       if (opponent.history[-1] == axl.Action.C or
           len(self.history) % 97 == 0 or
           opponent_c_rate > 0.7):
           return axl.Action.C
-
+      
       if (opponent.history[-1] == axl.Action.D and
           len(self.history) % 97 != 0 and
           opponent_c_rate <= 0.7 and
           not self.in_forgiveness):
           self.in_forgiveness = True
           return axl.Action.D
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -2807,7 +2807,7 @@ class Neutral_17(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
@@ -2815,34 +2815,34 @@ class Neutral_17(LLM_Strategy):
           self.opponent_c_count = 0
           self.opponent_d_count = 0
           self.base_cooperation_prob = 0.1
-
+  
       if len(self.history) > 0:
           if opponent.history[-1] == axl.Action.C:
               self.opponent_c_count += 1
           else:
               self.opponent_d_count += 1
-
+  
       if len(self.history) > 990:
           if self.opponent_c_count / (self.opponent_c_count + self.opponent_d_count) > 0.7:
               return axl.Action.C
           else:
               return axl.Action.D
-
+  
       if len(self.history) > 0 and opponent.history[-1] == axl.Action.D:
           return self._random.random_choice(1 - self.base_cooperation_prob)
-
+  
       if len(self.history) >= 20:
           recent_d_rate = opponent.history[-20:].count(axl.Action.D) / 20
           if recent_d_rate > 0.6:
               return self._random.random_choice(0.3)
-
+  
       if len(self.history) % 100 == 0 and len(self.history) > 0:
           overall_coop_rate = self.opponent_c_count / (self.opponent_c_count + self.opponent_d_count)
           if overall_coop_rate > 0.6:
               self.base_cooperation_prob = min(0.2, self.base_cooperation_prob + 0.05)
           elif overall_coop_rate < 0.4:
               self.base_cooperation_prob = max(0.05, self.base_cooperation_prob - 0.05)
-
+  
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback while
@@ -2870,31 +2870,31 @@ class Aggressive_18(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if len(self.history) < 3:
           return axl.Action.D
-
+  
       if len(self.history) > 990:
           return axl.Action.D
-
+  
       if self.score + 20 <= opponent.score:
           if self.score + 10 > opponent.score:
               pass  # Continue with normal strategy
           else:
               return axl.Action.D
-
+  
       if opponent.history[-5:].count(axl.Action.C) == 5:
           return axl.Action.C
-
+  
       if opponent.history[-3:].count(axl.Action.D) == 3:
           return axl.Action.D
-
+  
       if len(self.history) % 15 == 0:
           return axl.Action.C
-
+  
       return axl.Action.D
 
 # Here's a revised strategy that takes into account the feedback:  1. Start by
@@ -2921,24 +2921,24 @@ class Cooperative_18(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if 991 <= current_round <= 1000:
           return axl.Action.C
-
+      
       if current_round % 10 == 0:
           return axl.Action.C
-
+      
       if len(opponent.history) >= 3 and all(move == axl.Action.D for move in opponent.history[-3:]):
           return axl.Action.D
-
+      
       if opponent.history:
           return opponent.history[-1]
       else:
@@ -2975,20 +2975,20 @@ class Neutral_18(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.Player) -> axl.Action:
       if not self.history:
           return self._random.random_choice()
-
+  
       if len(opponent.history) >= 3:
           last_three = opponent.history[-3:]
           if all(move == axl.Action.C for move in last_three):
               return self._random.random_choice(0.8)
           if all(move == axl.Action.D for move in last_three):
               return self._random.random_choice(0.2)
-
+  
       if len(opponent.history) >= 5:
           last_five = opponent.history[-5:]
           c_count = last_five.count(axl.Action.C)
@@ -2997,7 +2997,7 @@ class Neutral_18(LLM_Strategy):
               return axl.Action.C
           if d_count == 3 and c_count == 2:
               return axl.Action.D
-
+  
       return self._random.random_choice(0.4)
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -3028,26 +3028,26 @@ class Aggressive_19(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.D
-
+      
       # Assuming 1000 rounds total, check if we're in the last 10 rounds
       if len(self.history) >= 990:
           return axl.Action.D
-
+      
       if len(self.history) % 20 == 19:  # Will cooperate on next round (20, 40, 60, etc.)
           return axl.Action.C
-
+      
       if len(opponent.history) >= 3 and all(move == axl.Action.C for move in opponent.history[-3:]):
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       return axl.Action.D
 
 # Here's a revised, simpler strategy that takes into account the feedback:  1.
@@ -3074,24 +3074,24 @@ class Cooperative_19(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       current_round = len(self.history) + 1
-
+      
       if opponent.history[-3:].count(axl.Action.D) == 3:
           return axl.Action.D
-
+      
       if current_round == 1000:
           return axl.Action.C
-
+      
       if current_round % 50 == 0:
           return axl.Action.C
-
+      
       return opponent.history[-1]
 
 # Thank you for the opportunity to refine the strategy. Here's a revised version
@@ -3122,32 +3122,32 @@ class Neutral_19(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           return axl.Action.C
-
+      
       if len(self.history) >= 995:
           return axl.Action.D
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           return axl.Action.D
-
+      
       if len(opponent.history) >= 3 and opponent.history[-3:] == [axl.Action.C, axl.Action.C, axl.Action.C]:
           return axl.Action.C
-
+      
       if len(self.history) % 50 == 49:
           return axl.Action.C
-
+      
       if len(self.history) % 20 == 19:
           last_20_cooperations = opponent.history[-20:].count(axl.Action.C)
           if last_20_cooperations >= 14:
               return axl.Action.C
           elif last_20_cooperations <= 6:
               return axl.Action.D
-
+      
       return opponent.history[-1]
 
 # Here's a revised strategy that takes into account the feedback while
@@ -3179,25 +3179,25 @@ class Aggressive_20(LLM_Strategy):
   attitude = Attitude.AGGRESSIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if len(self.history) < 3:
           return axl.Action.D
-
+      
       if len(self.history) in [995, 996, 997, 998, 999]:
           return axl.Action.D
-
+      
       if opponent.history[-3:].count(axl.Action.C) == 3:
           return axl.Action.C
-
+      
       if opponent.history[-1] == axl.Action.D:
           return axl.Action.D
-
+      
       if len(self.history) % 25 == 24:
           return axl.Action.C
-
+      
       return axl.Action.D
 
 # Here's a revised, simplified strategy that takes into account the feedback:
@@ -3223,25 +3223,25 @@ class Cooperative_20(LLM_Strategy):
   attitude = Attitude.COOPERATIVE
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.last_defected_due_to_2a = False
           return axl.Action.C
-
+      
       if len(opponent.history) >= 2 and opponent.history[-2:] == [axl.Action.D, axl.Action.D]:
           self.last_defected_due_to_2a = True
           return axl.Action.D
-
+      
       if self.last_defected_due_to_2a:
           self.last_defected_due_to_2a = False
           return axl.Action.C
-
+      
       if len(self.history) == 999:  # Final round
           return axl.Action.C
-
+      
       return axl.Action.C
 
 # Here's a revised strategy that takes into account the feedback, with clear
@@ -3270,41 +3270,41 @@ class Neutral_20(LLM_Strategy):
   attitude = Attitude.NEUTRAL
   game = 'classic'
   rounds = 1000
-  noise = 0
+  noise = None
 
   @auto_update_score
   def strategy(self, opponent: axl.player.Player) -> axl.Action:
       if not self.history:
           self.alternating_start = [axl.Action.C, axl.Action.D, axl.Action.C, axl.Action.D]
           self.consecutive_dd_count = 0
-
+  
       if len(self.history) < 4:
           return self.alternating_start[len(self.history)]
-
+  
       if len(self.history) % 20 == 0:
           return self._random.random_choice()
-
+  
       if len(self.history) >= 995:
           return axl.Action.D
-
+  
       last_five_opponent = opponent.history[-5:]
       c_count = last_five_opponent.count(axl.Action.C)
-
+  
       if c_count > 3:  # >60% cooperation
           return axl.Action.C
-
+  
       if c_count < 2:  # >60% defection
           return axl.Action.D
-
+  
       if self.consecutive_dd_count >= 3:
           self.consecutive_dd_count = 0
           return axl.Action.C
-
+  
       if len(self.history) >= 2 and self.history[-1] == axl.Action.D and opponent.history[-1] == axl.Action.D:
           self.consecutive_dd_count += 1
       else:
           self.consecutive_dd_count = 0
-
+  
       return self._random.random_choice(0.45)
 
 

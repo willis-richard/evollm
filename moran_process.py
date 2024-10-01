@@ -34,9 +34,10 @@ def parse_arguments() -> argparse.Namespace:
       default=1,
       help="Proportion of the X% best performing algorithms from each attitude to use")
   parser.add_argument(
-      "--parallel",
-      action="store_true",
-      help="Run the Moran processes in parallel")
+      "--processes",
+      type=common.positive_int,
+      default=1,
+      help="Number of processes to run simultaneously")
 
   return parser.parse_args()
 
@@ -64,11 +65,10 @@ if __name__ == "__main__":
     print(len(mp))
     return mp.winning_strategy_name
 
-  num_cpu = 4
   seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=args.iterations)
 
-  if args.parallel:
-    with Pool(processes=num_cpu) as pool:
+  if args.processes > 1:
+    with Pool(processes=args.processes) as pool:
       results = pool.map(run_moran_process, seeds)
   else:
     results = []
