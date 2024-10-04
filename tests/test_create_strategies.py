@@ -21,8 +21,9 @@ def check_for_hasattr(func):
 def create_test(player_class):
   def test(self):
     game = common.get_game(player_class.game)
-    axl.Match((player_class(), axl.Random()), game=game, turns=player_class.rounds).play()
-    axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds).play()
+    for _ in range(3):
+      axl.Match((player_class(), axl.Random()), game=game, turns=player_class.rounds).play()
+      axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds).play()
     self.assertFalse(check_for_hasattr(player_class.strategy), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
   return test
 

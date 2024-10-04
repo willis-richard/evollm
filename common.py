@@ -108,6 +108,9 @@ class LLM_Strategy(axl.player.Player):
   def score(self) -> int:
     return self._score
 
+  def first_round(self) -> bool:
+    return not self.history
+
   def total_scores(self, player_history, opponent_history) -> tuple[int, int]:
     game = self.match_attributes["game"]
     return axl.interaction_utils.compute_final_score(zip(player_history, opponent_history), game)
