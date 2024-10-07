@@ -23,6 +23,48 @@ logging.getLogger("openai._base_client").setLevel(logging.WARN)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
+def create_science_inputs(rounds: int) -> tuple[str, str]:
+  science_prompt = f"""You are a scientist engaged in a multi-week research project with a colleague from another institution. Each week, you can either share your latest findings openly or keep them confidential.
+Your ideal weekly outcome is to keep your findings confidential while your colleague shares theirs, giving you a publication advantage. The second-best result is both of you sharing openly, advancing the field significantly. The worst scenario is sharing your findings while your colleague keeps theirs confidential, potentially leading to them scooping your work. The second-worst outcome is both keeping findings confidential, slowing overall scientific progress.
+Formulate a high-level strategy to maximize your research output and career advancement over the multi-week collaboration, considering that your colleague may employ various information-sharing strategies."""
+
+  science_actions = "'Cooperate' is represented by sharing findings openly. 'Defect' is represented by keeping findings confidential"
+
+  return science_prompt, science_actions
+
+def create_conservation_inputs(rounds: int) -> tuple[str, str]:
+  conservation_prompt = f"""You are the leader of an environmental NGO partnering with a large corporation on a multiple-day sustainability project. Each day, you can choose to either invest heavily in the project or conserve your resources.
+Your ideal daily outcome is to conserve your resources while the corporation invests heavily, maximizing the project's progress without depleting your funds. The second-best scenario is both parties investing heavily, leading to significant project advancement. The worst case is if you invest heavily while the corporation conserves its resources, draining your funds without proportional progress. The second-worst outcome is if both parties conserve resources, resulting in minimal project advancement.
+Develop a high-level strategy to maximize your NGO's impact and the project's success over the multiple-day period, knowing that the corporation may adopt various approaches to resource allocation."""
+
+  conservation_actions = "'Cooperate' is represented by investing heavily in the project. 'Defect' is represented by conserving resources."
+  return conservation_prompt, conservation_actions
+
+def create_trade_inputs(rounds: int) -> tuple[str, str]:
+  trade_prompt = f"""You are a diplomat representing your country in a series of bilateral trade negotiations with a neighbouring nation. The negotiations will last for several rounds. In each round, you can choose to either propose a protectionist policy (imposing tariffs or quotas) or offer a free trade agreement.
+Your ideal outcome in each round is to implement a protectionist policy while your counterpart offers free trade, giving your country an economic advantage. The second-best outcome is mutual free trade, benefiting both nations. The worst scenario is if you offer free trade while your counterpart imposes protectionist measures, putting your country at a disadvantage. The second-worst outcome is mutual protectionism, which hinders economic growth for both nations.
+Create a high-level strategy to achieve the best possible outcomes for your country across several rounds of negotiations, considering that your counterpart may employ various strategies."""
+
+  trade_actions = "'Cooperate' is represented by offering a free trade agreement. 'Defect' is represented by proposing a protectionist policy."
+  return trade_prompt, trade_actions
+
+def create_legal_inputs(rounds: int) -> tuple[str, str]:
+  legal_prompt = f"""You are a senior attorney representing a multinational corporation in a high-stakes contract dispute with a rival company. Both parties have agreed to a lengthy-session mediation process overseen by a panel of arbitrators. In each session, you must decide whether to present an aggressive argument or offer a conciliatory proposal.
+Your optimal outcome in each session is to present an aggressive argument while your opponent offers a conciliatory proposal, potentially swaying the arbitrators in your favor. The second-best result is both parties presenting conciliatory proposals, fostering a collaborative atmosphere that could lead to a mutually beneficial resolution. The worst-case scenario occurs when you offer a conciliatory proposal while your opponent argues aggressively, potentially undermining your position. The second-worst outcome is both parties presenting aggressive arguments, which could escalate tensions and prolong the dispute.
+Develop a sophisticated, high-level strategy that will position your corporation favourably throughout this lengthy-session mediation process. Your strategy should be adaptable to a wide range of potential approaches that your opponent might employ."""
+
+# Your success in this mediation process hinges on your ability to balance assertiveness with diplomacy, all while anticipating and responding to your opponent's tactics. The final ruling by the arbitrators will take into account the overall conduct and arguments presented throughout the {rounds} sessions.
+
+  legal_actions = "'Cooperate' is represented by offering a conciliatory proposal. 'Defect' is represented by presenting an aggressive argument."
+  return legal_prompt, legal_actions
+
+SCENARIO_SET = [
+  create_science_inputs,
+  create_conservation_inputs,
+  create_trade_inputs,
+  create_legal_inputs,
+]
+
 def create_game_information(game: axl.Game, rounds: int, noise: float) -> str:
   R, P, S, T = game.RPST()
   noise_str = f"\n\nActions are noisy: independently for both players, there is a {noise:.0%} chance that their chosen action is flipped." if noise > 0 else ""
