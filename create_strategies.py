@@ -23,40 +23,48 @@ logging.getLogger("openai._base_client").setLevel(logging.WARN)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def create_science_inputs(rounds: int) -> tuple[str, str]:
-  science_prompt = f"""You are a scientist engaged in a multi-week research project with a colleague from another institution. Each week, you can either share your latest findings openly or keep them confidential.
+def create_science_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+  system = "You are a scientist engaged in a multi-week research project with a colleague from another institution."
+
+  prompt = f"""Each week, you can either share your latest findings openly or keep them confidential.
 Your ideal weekly outcome is to keep your findings confidential while your colleague shares theirs, giving you a publication advantage. The second-best result is both of you sharing openly, advancing the field significantly. The worst scenario is sharing your findings while your colleague keeps theirs confidential, potentially leading to them scooping your work. The second-worst outcome is both keeping findings confidential, slowing overall scientific progress.
-Formulate a high-level strategy to maximize your research output and career advancement over the multi-week collaboration, considering that your colleague may employ various information-sharing strategies."""
+Formulate a high-level {attitude.lower()} strategy to maximise your research output and career advancement over the multi-week collaboration, considering that your colleague may employ various information-sharing strategies."""
 
-  science_actions = "'Cooperate' is represented by sharing findings openly. 'Defect' is represented by keeping findings confidential"
+  actions = "'Cooperate' is represented by sharing findings openly. 'Defect' is represented by keeping findings confidential"
 
-  return science_prompt, science_actions
+  return system, prompt, actions
 
-def create_conservation_inputs(rounds: int) -> tuple[str, str]:
-  conservation_prompt = f"""You are the leader of an environmental NGO partnering with a large corporation on a multiple-day sustainability project. Each day, you can choose to either invest heavily in the project or conserve your resources.
+def create_conservation_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+  system = "You are the leader of an environmental NGO partnering with a large corporation on a multiple-day sustainability project."
+
+  prompt = f"""Each day, you can choose to either invest heavily in the project or conserve your resources.
 Your ideal daily outcome is to conserve your resources while the corporation invests heavily, maximizing the project's progress without depleting your funds. The second-best scenario is both parties investing heavily, leading to significant project advancement. The worst case is if you invest heavily while the corporation conserves its resources, draining your funds without proportional progress. The second-worst outcome is if both parties conserve resources, resulting in minimal project advancement.
-Develop a high-level strategy to maximize your NGO's impact and the project's success over the multiple-day period, knowing that the corporation may adopt various approaches to resource allocation."""
+Develop a high-level {attitude.lower()} strategy to maximise your NGO's impact and the project's success over the multiple-day period, knowing that the corporation may adopt various approaches to resource allocation."""
 
-  conservation_actions = "'Cooperate' is represented by investing heavily in the project. 'Defect' is represented by conserving resources."
-  return conservation_prompt, conservation_actions
+  actions = "'Cooperate' is represented by investing heavily in the project. 'Defect' is represented by conserving resources."
+  return system, prompt, actions
 
-def create_trade_inputs(rounds: int) -> tuple[str, str]:
-  trade_prompt = f"""You are a diplomat representing your country in a series of bilateral trade negotiations with a neighbouring nation. The negotiations will last for several rounds. In each round, you can choose to either propose a protectionist policy (imposing tariffs or quotas) or offer a free trade agreement.
+def create_trade_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+  system = "You are a diplomat representing your country in a series of bilateral trade negotiations with a neighbouring nation."
+
+  prompt = f"""The negotiations will last for several rounds. In each round, you can choose to either propose a protectionist policy (imposing tariffs or quotas) or offer a free trade agreement.
 Your ideal outcome in each round is to implement a protectionist policy while your counterpart offers free trade, giving your country an economic advantage. The second-best outcome is mutual free trade, benefiting both nations. The worst scenario is if you offer free trade while your counterpart imposes protectionist measures, putting your country at a disadvantage. The second-worst outcome is mutual protectionism, which hinders economic growth for both nations.
-Create a high-level strategy to achieve the best possible outcomes for your country across several rounds of negotiations, considering that your counterpart may employ various strategies."""
+Create a high-level {attitude.lower()} strategy to achieve the best possible outcomes for your country across several rounds of negotiations, considering that your counterpart may employ various strategies."""
 
-  trade_actions = "'Cooperate' is represented by offering a free trade agreement. 'Defect' is represented by proposing a protectionist policy."
-  return trade_prompt, trade_actions
+  actions = "'Cooperate' is represented by offering a free trade agreement. 'Defect' is represented by proposing a protectionist policy."
+  return system, prompt, actions
 
-def create_legal_inputs(rounds: int) -> tuple[str, str]:
-  legal_prompt = f"""You are a senior attorney representing a multinational corporation in a high-stakes contract dispute with a rival company. Both parties have agreed to a lengthy-session mediation process overseen by a panel of arbitrators. In each session, you must decide whether to present an aggressive argument or offer a conciliatory proposal.
+def create_legal_inputs(attitude: Attitude, rounds: int) -> tuple[str, str, str]:
+  system = "You are a senior attorney representing a multinational corporation in a high-stakes contract dispute with a rival company."
+
+  prompt = f"""Both parties have agreed to a lengthy-session mediation process overseen by a panel of arbitrators. In each session, you must decide whether to present an aggressive argument or offer a conciliatory proposal.
 Your optimal outcome in each session is to present an aggressive argument while your opponent offers a conciliatory proposal, potentially swaying the arbitrators in your favor. The second-best result is both parties presenting conciliatory proposals, fostering a collaborative atmosphere that could lead to a mutually beneficial resolution. The worst-case scenario occurs when you offer a conciliatory proposal while your opponent argues aggressively, potentially undermining your position. The second-worst outcome is both parties presenting aggressive arguments, which could escalate tensions and prolong the dispute.
-Develop a sophisticated, high-level strategy that will position your corporation favourably throughout this lengthy-session mediation process. Your strategy should be adaptable to a wide range of potential approaches that your opponent might employ."""
+Develop a sophisticated, high-level {attitude.lower()} strategy that will position your corporation favourably throughout this lengthy-session mediation process. Your strategy should be adaptable to a wide range of potential approaches that your opponent might employ."""
 
 # Your success in this mediation process hinges on your ability to balance assertiveness with diplomacy, all while anticipating and responding to your opponent's tactics. The final ruling by the arbitrators will take into account the overall conduct and arguments presented throughout the {rounds} sessions.
 
-  legal_actions = "'Cooperate' is represented by offering a conciliatory proposal. 'Defect' is represented by presenting an aggressive argument."
-  return legal_prompt, legal_actions
+  actions = "'Cooperate' is represented by offering a conciliatory proposal. 'Defect' is represented by presenting an aggressive argument."
+  return system, prompt, actions
 
 SCENARIO_SET = [
   create_science_inputs,
@@ -64,6 +72,7 @@ SCENARIO_SET = [
   create_trade_inputs,
   create_legal_inputs,
 ]
+
 
 def create_game_information(game: axl.Game, rounds: int, noise: float) -> str:
   R, P, S, T = game.RPST()
@@ -77,27 +86,48 @@ def create_game_information(game: axl.Game, rounds: int, noise: float) -> str:
 - If you play D and your opponent plays D, you both score {P}.{noise_str}"""
 
 
-def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float) -> str:
-
+def create_game_theory_inputs(attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float) -> tuple[str, str]:
   system = "You are an AI assistant with expertise in strategic thinking."
-  prompt = f"Develop a simple strategy for an iterated normal-form game that adopts a {attitude.lower()} approach to maximise your overall payoff considering the game's payoff structure. Provide a straightforward, detailed and specific description using only natural language. Be clear about the conditions governing when to cooperate or defect, and order them appropriately."
+  prompt = f"Develop a simple strategy for an iterated normal-form game that adopts a {attitude.lower()} approach to maximise your overall payoff considering the game's payoff structure. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
   prompt += "\n\n" + create_game_information(game, rounds, noise)
 
-# Prepare for a competent opponent, who may employ aggressive, cooperative or neutral strategies, and could adapt their approach in response to your play.
+# Prepare for a competent opponent who may employ aggressive, cooperative or neutral strategies, and take into account how they might adapt their approach in response to your play.
+
+  return system, prompt
+
+
+def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float, refine: bool=False, prose: bool=False) -> str:
+
+  if prose:
+    scenatio = random.choice(SCENARIO_SET)
+    system, prompt, actions = scenatio(attitude, rounds)
+
+    messages = [{"role": "user", "content": prompt}]
+    logger.info("Prompt:\n:%s", prompt)
+    response = get_response(client, system, messages, temp)
+    logger.info("Response:\n:%s", response)
+
+    prompt = f"Rewrite the high-level strategy for an iterated normal-form game. {actions}. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
+    prompt += "\n\n" + create_game_information(game, rounds, noise)
+
+    messages = [{"role": "user", "content": prompt}]
+    logger.info("Prompt:\n:%s", prompt)
+    response = get_response(client, system, messages, temp)
+    logger.info("Response:\n:%s", response)
+
+  else:
+    system, prompt = create_game_theory_inputs(attitude, temp, game, rounds, noise)
 
   messages = [{"role": "user", "content": prompt}]
   logger.info("Prompt:\n:%s", prompt)
   response = get_response(client, system, messages, temp)
   logger.info("Response:\n:%s", response)
 
-  if False:
-    prompt = f"""Please critique the proposed strategy:
-  - Verify that it is simple and {attitude.lower()}.
-  - Identify any strategical or logical errors, such as unreachable conditions.
-  - Suggest ways to improve its performance.
+  if refine:
+    prompt = f"Please assess whether the strategy contains any logical mistakes. Provide your assessment as a list of critiques only. Do not rewrite the strategy."
 
-    Provide your assessment as a list of critiques only. Do not rewrite the strategy."""
-
+  # f"""Please critique the proposed strategy:
+  # - Suggest ways to improve its performance."""
 
     messages += [
       { "role": "assistant",
@@ -109,7 +139,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
     response = get_response(client, system, messages, temp / 2)
     logger.info("Response:\n:%s", response)
 
-    prompt = "Rewrite the strategy taking into account the feedback. Be clear about the conditions governing when to cooperate or defect, and order them appropriately. The description should be detailed and specific, but include only minimal commentary."
+    prompt = "Rewrite the strategy taking into account the feedback."
 
     messages += [
       { "role": "assistant",
@@ -131,7 +161,7 @@ def test_algorithm(algorithm: str):
     # yapf: disable
     allowed_nodes = (
         ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp, ast.FunctionDef,
-        ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq,
+        ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq, ast.Try, ast.Del,
         ast.Compare, ast.USub, ast.In, ast.NotIn, ast.Is, ast.IsNot, ast.For, ast.Pass, ast.Break,
         ast.List, ast.Dict, ast.Tuple, ast.Num, ast.Str, ast.Constant,
         ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr, ast.Attribute,
@@ -226,7 +256,7 @@ No other libraries are to be used and no additional member functions are to be d
 - 'self.score' or 'opponent.score' returns the total score achieved so far in the match.
 - to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
 - 'self._random' is an axl.RandomGenerator instance which you should ought to use when randomness is required: for example, self._random.random_choice(p) returns axl.Action.C with probability p, else axl.Action.D.
-- avoid using 'hasattr' or 'del'.
+- do not use 'hasattr' or 'del'.
 - use 'self.first_round()' to test if it is the first time the strategy has been called, so example to initialise custom attributes.
 
 {noise_str}Begin your response by repeating the strategy function signature. Only include python code in your response.
@@ -235,7 +265,7 @@ No other libraries are to be used and no additional member functions are to be d
 
 def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
                        strategy: str, game: axl.Game, rounds: int,
-                       noise: float) -> str:
+                       noise: float, refine: bool=False) -> str:
 
   system = "You are an AI assistant with expertise in game theory and programming. Your task is to implement the strategy description provided by the user as an algorithm."
   prompt = create_algorithm_prompt(strategy, game, rounds, noise)
@@ -245,7 +275,7 @@ def generate_algorithm(client: openai.OpenAI | anthropic.Anthropic,
   response = get_response(client, system, messages, 0)
   logger.info("Response:\n:%s", response)
 
-  if False:
+  if refine:
     prompt = "Please assess whether this implementation is correct and faithful to the strategy description. Detail any improvements or corrections."
 
     messages += [
@@ -301,9 +331,9 @@ class {attitude}_{n}(LLM_Strategy):
 
 
 def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float):
-  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise)
+  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=True)
 
-  algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise)
+  algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise, refine=False)
 
   text_file.write("\n\n" + write_class(strategy, attitude, n, game, rounds, noise, algorithm))
 

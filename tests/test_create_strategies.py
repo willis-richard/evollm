@@ -9,22 +9,23 @@ import output
 class TestPlayerClass(unittest.TestCase):
   pass
 
-def check_for_hasattr(func):
+def check_for_string(func, string):
   # Unwrap the function if it's decorated
   while hasattr(func, '__wrapped__'):
       func = func.__wrapped__
 
   # Get the source code of the unwrapped function
   source = inspect.getsource(func)
-  return "hasattr" in source
+  return string in source
 
 def create_test(player_class):
   def test(self):
+    self.assertFalse(check_for_string(player_class.strategy, "hasattr"), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
+    self.assertFalse(check_for_string(player_class.strategy, "del"), "del found in code, typically replace this with setting the variable to zero")
     game = common.get_game(player_class.game)
     for _ in range(3):
       axl.Match((player_class(), axl.Random()), game=game, turns=player_class.rounds).play()
       axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds).play()
-    self.assertFalse(check_for_hasattr(player_class.strategy), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
   return test
 
 # Get all classes from the module that are derived from axelrod.Player
