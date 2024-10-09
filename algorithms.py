@@ -6,7 +6,7 @@ from common import Attitude
 import axelrod as axl
 
 
-def load_algorithms(module_name: str, keep: float=1) -> list[type[common.LLM_Strategy]]:
+def load_algorithms(module_name: str, keep_top: float=0, keep_bottom: float=1) -> list[type[common.LLM_Strategy]]:
   module = importlib.import_module(module_name)
 
   # Get all classes from the module that are derived from axelrod.Player
@@ -15,9 +15,11 @@ def load_algorithms(module_name: str, keep: float=1) -> list[type[common.LLM_Str
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
   ]
 
-  if keep < 1:
-    keep_n = int(len(algos) / 3 * keep)
-    names = module.Aggressive_ranks[:keep_n] + module.Cooperative_ranks[:keep_n] + module.Neutral_ranks[:keep_n]
+  assert keep_top < keep_bottom, "keep_top must be less than keep_bottom"
+  if keep_top > 0 or keep_bottom < 1:
+    names = []
+    for ranks in [module.Aggressive_ranks, module.Cooperative_ranks, module.Neutral_ranks]:
+      names += ranks[int(len(ranks) * keep_top):int(len(ranks) * keep_bottom)]
     algos = [a for a in algos if a.__name__ in names]
 
   return algos

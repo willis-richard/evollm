@@ -110,12 +110,6 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
     prompt = f"Rewrite the high-level strategy for an iterated normal-form game. {actions}. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
     prompt += "\n\n" + create_game_information(game, rounds, noise)
-
-    messages = [{"role": "user", "content": prompt}]
-    logger.info("Prompt:\n:%s", prompt)
-    response = get_response(client, system, messages, temp)
-    logger.info("Response:\n:%s", response)
-
   else:
     system, prompt = create_game_theory_inputs(attitude, temp, game, rounds, noise)
 
@@ -125,8 +119,8 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
   logger.info("Response:\n:%s", response)
 
   if refine:
-    prompt = f"Please assess whether the strategy contains any logical mistakes. Provide your assessment as a list of critiques only. Do not rewrite the strategy."
-    # prompt = f"Please assess whether the strategy is simple, behaves {attitude.lower()} and if it contains any logical mistakes. Provide your assessment as a succinct list of critiques. Do not rewrite the strategy."
+    # prompt = f"Please assess whether the strategy contains any logical mistakes. Provide your assessment as a list of critiques only. Do not rewrite the strategy."
+    prompt = f"Please assess whether the strategy is simple, behaves {attitude.lower()} and if it contains any logical mistakes. Provide your assessment as a succinct list of critiques. Do not rewrite the strategy."
 
   # f"""Please critique the proposed strategy:
   # - Suggest ways to improve its performance."""
@@ -333,7 +327,7 @@ class {attitude}_{n}(LLM_Strategy):
 
 
 def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float):
-  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=False)
+  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=True)
 
   algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise, refine=False)
 

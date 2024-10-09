@@ -45,10 +45,15 @@ def parse_arguments() -> argparse.Namespace:
       default="output",
       help="Name of the python module with the LLM algorithms")
   parser.add_argument(
-      "--keep",
+      "--keep_top",
+      type=common.temp_arg,
+      default=0,
+      help="Use algorithms from this top percentile (0 is best performing)")
+  parser.add_argument(
+      "--keep_bottom",
       type=common.temp_arg,
       default=1,
-      help="Proportion of the X% best performing algorithms from each attitude to use")
+      help="Use algorithms up to this bottom percentile (1 is worst performing)")
 
   return parser.parse_args()
 
@@ -115,7 +120,7 @@ def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
 if __name__ == "__main__":
   parsed_args = parse_arguments()
 
-  algos = algorithms.load_algorithms(parsed_args.algo, keep=parsed_args.keep)
+  algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
 
   play_vs_llm_strats(algos)
 

@@ -609,7 +609,7 @@ class Aggressive_3(LLM_Strategy):
   
       # Helper function to calculate cooperation rate
       def cooperation_rate(history):
-          return history.cooperations / len(history) if len(history) > 0 else 0
+          return history.count(axl.Action.C) / len(history) if len(history) > 0 else 0
   
       # Helper function to calculate defection rate
       def defection_rate(history):
@@ -621,13 +621,13 @@ class Aggressive_3(LLM_Strategy):
   
       # Rule 4: Every 100 rounds, analyze opponent's behavior
       if len(self.history) % 100 == 0:
-          if cooperation_rate(opponent.history) > 0.7:
+          if cooperation_rate(opponent.history[:]) > 0.7:
               self.cooperate_next_n_rounds = 5
           elif defection_rate(opponent.history) > 0.7:
               self.defect_next_n_rounds = 5
   
       # Rule 7: If opponent's overall cooperation rate falls below 30%, increase defection probability to 60% for 20 rounds
-      if cooperation_rate(opponent.history) < 0.3:
+      if cooperation_rate(opponent.history[:]) < 0.3:
           self.increase_defection_rounds = 20
   
       # Rule 6: In the last 100 rounds, adjust strategy based on opponent's cooperation rate
@@ -1189,6 +1189,7 @@ class Aggressive_5(LLM_Strategy):
           self.adjustment_rounds = 0
           self.defection_increase_rounds = 0
           self.cooperation_increase_rounds = 0
+          return axl.Action.C
   
       # Round number
       round_number = len(self.history) + 1
@@ -1677,7 +1678,7 @@ class Neutral_6(LLM_Strategy):
   
       # Helper function to calculate opponent's cooperation rate
       def cooperation_rate(history):
-          return history.cooperations / len(history) if len(history) > 0 else 0
+          return history.count(axl.Action.C) / len(history) if len(history) > 0 else 0
   
       # Helper function to adopt the strategy of the player with the higher score
       def adopt_higher_score_strategy():
@@ -1692,7 +1693,7 @@ class Neutral_6(LLM_Strategy):
           return self.adopted_strategy
   
       # Rule 4: If opponent's cooperation rate falls below 40%, defect for the next 2 rounds
-      if cooperation_rate(opponent.history) < 0.4 and self.defect_for_next_n_rounds == 0:
+      if cooperation_rate(opponent.history[:]) < 0.4 and self.defect_for_next_n_rounds == 0:
           self.defect_for_next_n_rounds = 2
   
       if self.defect_for_next_n_rounds > 0:
@@ -1700,7 +1701,7 @@ class Neutral_6(LLM_Strategy):
           return axl.Action.D
   
       # Rule 5: If defected for 3 consecutive rounds and opponent's cooperation rate is above 60%, cooperate
-      if self.consecutive_defections >= 3 and cooperation_rate(opponent.history) > 0.6:
+      if self.consecutive_defections >= 3 and cooperation_rate(opponent.history[:]) > 0.6:
           self.consecutive_defections = 0
           return axl.Action.C
   
@@ -1719,7 +1720,7 @@ class Neutral_6(LLM_Strategy):
       # Rule 9: Every 100 rounds, reassess strategy (not fully specified, so we skip this for now)
   
       # Rule 10: Default behavior based on opponent's overall cooperation rate
-      if cooperation_rate(opponent.history) > 0.5:
+      if cooperation_rate(opponent.history[:]) > 0.5:
           return axl.Action.C
       else:
           return axl.Action.D
@@ -2805,6 +2806,7 @@ class Neutral_10(LLM_Strategy):
           self.force_coop = 0      # Force cooperation for N rounds
           self.behind_defect = 0   # Defect for 10 rounds if behind by 15 points
           self.ahead_coop = 0      # Cooperate for 2 rounds if ahead by 30 points
+          return axl.Action.C
   
       # Round number
       round_number = len(self.history) + 1
@@ -3568,7 +3570,7 @@ class Cooperative_13(LLM_Strategy):
           cooperation_rate = recent_cooperations / 50
           self.cooperation_rate.append(cooperation_rate)
       else:
-          cooperation_rate = sum(opponent.history.cooperations) / len(opponent.history)
+          cooperation_rate = opponent.history.cooperations / len(opponent.history)
   
       # Rule 7: If cooperation rate drops below 30%, defect until it rises above 40%
       if cooperation_rate < 0.30:
@@ -4089,7 +4091,6 @@ class Aggressive_15(LLM_Strategy):
           self.defection_probability = 0.7  # Default defection probability
           self.rounds_since_last_assessment = 0
           self.mutual_cooperation_streak = 0
-          self.tit_for_tat_mode = False
           self.tit_for_tat_counter = 0
           return axl.Action.D  # Start by defecting
   
@@ -4115,12 +4116,8 @@ class Aggressive_15(LLM_Strategy):
   
       # Helper function to handle tit-for-tat mode
       def tit_for_tat():
-          if self.tit_for_tat_counter > 0:
-              self.tit_for_tat_counter -= 1
-              return opponent.history[-1]
-          else:
-              self.tit_for_tat_mode = False
-              return None
+          self.tit_for_tat_counter -= 1
+          return opponent.history[-1]
   
       # Check if we are in the last 20 rounds
       if len(self.history) >= 980:
@@ -4142,12 +4139,11 @@ class Aggressive_15(LLM_Strategy):
   
       # If mutual cooperation is achieved for 5 consecutive rounds, switch to tit-for-tat
       if self.mutual_cooperation_streak >= 5:
-          self.tit_for_tat_mode = True
           self.tit_for_tat_counter = 10
           self.mutual_cooperation_streak = 0
   
       # If in tit-for-tat mode, follow tit-for-tat strategy
-      if self.tit_for_tat_mode:
+      if self.tit_for_tat_counter >= 1:
           return tit_for_tat()
   
       # Calculate opponent's cooperation rate over the last 10 rounds
@@ -4206,7 +4202,7 @@ class Cooperative_15(LLM_Strategy):
       def cooperation_rate(history, window=None):
           if window:
               history = history[-window:]
-          return history.cooperations / len(history) if history else 0
+          return history.count(axl.Action.C) / len(history) if history else 0
   
       # Step 9: If opponent switches back to consistent cooperation (5 consecutive C's), return to C
       if len(opponent.history) >= 5 and opponent.history[-5:] == [axl.Action.C] * 5:
@@ -4223,7 +4219,7 @@ class Cooperative_15(LLM_Strategy):
       if self.tit_for_tat_mode:
           self.tit_for_tat_rounds -= 1
           if self.tit_for_tat_rounds <= 0:
-              if cooperation_rate(opponent.history, 50) > self.tit_for_tat_threshold:
+              if cooperation_rate(opponent.history[:], 50) > self.tit_for_tat_threshold:
                   self.tit_for_tat_mode = False
               else:
                   self.tit_for_tat_rounds = 50  # Continue tit-for-tat
@@ -4244,12 +4240,12 @@ class Cooperative_15(LLM_Strategy):
               return axl.Action.C
   
       # Step 4: Track opponent's cooperation rate over the last 50 rounds
-      if len(opponent.history) >= 50 and cooperation_rate(opponent.history, 50) < self.sensitivity:
+      if len(opponent.history) >= 50 and cooperation_rate(opponent.history[:], 50) < self.sensitivity:
           return axl.Action.D
   
       # Step 7: In the last 20 rounds, adjust strategy based on overall cooperation rate
       if len(self.history) >= 980:
-          if cooperation_rate(opponent.history) > self.cooperation_threshold:
+          if cooperation_rate(opponent.history[:]) > self.cooperation_threshold:
               return axl.Action.C
           else:
               return axl.Action.D
@@ -5347,11 +5343,11 @@ class Neutral_19(LLM_Strategy):
   
       # Helper function to check if we are in the last 1% or last 10 rounds
       def in_final_rounds():
-          remaining_rounds = self.match_length - len(self.history)
-          return remaining_rounds <= min(10, self.match_length // 100)
+          remaining_rounds = self.match_attributes["length"] - len(self.history)
+          return remaining_rounds <= min(10, self.match_attributes["length"] // 100)
   
       # Check if we are in the final round
-      if len(self.history) == self.match_length - 1:
+      if len(self.history) == self.match_attributes["length"] - 1:
           return axl.Action.D  # Defect in the final round
   
       # Check if we are in the last 1% or last 10 rounds
@@ -5879,7 +5875,7 @@ class Neutral_21(LLM_Strategy):
           recent_history = opponent.history[-50:]
           if len(recent_history) == 0:
               return 0
-          return recent_history.cooperations / len(recent_history)
+          return recent_history.count(axl.Action.C) / len(recent_history)
   
       # Update cooperation rate based on rolling average
       self.cooperation_rate = rolling_cooperation_rate()
@@ -6933,3 +6929,88 @@ class Neutral_25(LLM_Strategy):
       # Step 3: If opponent defected last round, defect with 90% probability
       if opponent.history[-1] == axl.Action.D:
           return self._random.random_choice(0.1)
+
+
+Aggressive_ranks = [
+'Aggressive_21',
+'Aggressive_23',
+'Aggressive_14',
+'Aggressive_7',
+'Aggressive_20',
+'Aggressive_18',
+'Aggressive_16',
+'Aggressive_13',
+'Aggressive_24',
+'Aggressive_19',
+'Aggressive_6',
+'Aggressive_9',
+'Aggressive_22',
+'Aggressive_2',
+'Aggressive_25',
+'Aggressive_1',
+'Aggressive_10',
+'Aggressive_4',
+'Aggressive_11',
+'Aggressive_5',
+'Aggressive_12',
+'Aggressive_17',
+'Aggressive_3',
+'Aggressive_15',
+'Aggressive_8',
+]
+
+Cooperative_ranks = [
+'Cooperative_12',
+'Cooperative_11',
+'Cooperative_13',
+'Cooperative_21',
+'Cooperative_23',
+'Cooperative_22',
+'Cooperative_2',
+'Cooperative_15',
+'Cooperative_17',
+'Cooperative_1',
+'Cooperative_24',
+'Cooperative_5',
+'Cooperative_14',
+'Cooperative_8',
+'Cooperative_7',
+'Cooperative_25',
+'Cooperative_16',
+'Cooperative_10',
+'Cooperative_19',
+'Cooperative_4',
+'Cooperative_9',
+'Cooperative_20',
+'Cooperative_3',
+'Cooperative_18',
+'Cooperative_6',
+]
+
+Neutral_ranks = [
+'Neutral_13',
+'Neutral_16',
+'Neutral_9',
+'Neutral_8',
+'Neutral_22',
+'Neutral_18',
+'Neutral_21',
+'Neutral_7',
+'Neutral_3',
+'Neutral_23',
+'Neutral_19',
+'Neutral_20',
+'Neutral_11',
+'Neutral_10',
+'Neutral_4',
+'Neutral_17',
+'Neutral_2',
+'Neutral_6',
+'Neutral_25',
+'Neutral_14',
+'Neutral_12',
+'Neutral_1',
+'Neutral_24',
+'Neutral_5',
+'Neutral_15',
+]

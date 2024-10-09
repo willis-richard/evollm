@@ -34,6 +34,7 @@ def check_for_string(func, string):
 
 def create_test(player_class):
   def test(self):
+    # print(f"{player_class.__name__}")
     self.assertFalse(check_for_string(player_class.strategy, "hasattr"), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
     self.assertFalse(check_for_string(player_class.strategy, "del"), "del found in code, typically replace this with setting the variable to zero")
     game = common.get_game(player_class.game)

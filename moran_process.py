@@ -29,10 +29,15 @@ def parse_arguments() -> argparse.Namespace:
       default=100,
       help="Number of times to run the simulation")
   parser.add_argument(
-      "--keep",
+      "--keep_top",
+      type=common.temp_arg,
+      default=0,
+      help="Use algorithms from this top percentile (0 is best performing)")
+  parser.add_argument(
+      "--keep_bottom",
       type=common.temp_arg,
       default=1,
-      help="Proportion of the X% best performing algorithms from each attitude to use")
+      help="Use algorithms up to this bottom percentile (1 is worst performing)")
   parser.add_argument(
       "--processes",
       type=common.positive_int,
@@ -43,12 +48,12 @@ def parse_arguments() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-  args = parse_arguments()
+  parsed_args = parse_arguments()
 
   # N.B. create separate instances for each player, not copies!
-  algos = algorithms.load_algorithms(args.algo, args.keep)
+  algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
   classes = algorithms.create_classes(algos)
-  players = [cls() for cls, count in zip(classes, args.initial_pop) for _ in range(count)]
+  players = [cls() for cls, count in zip(classes, parsed_args.initial_pop) for _ in range(count)]
   print(players)
 
   def run_moran_process(seed):
@@ -65,14 +70,14 @@ if __name__ == "__main__":
     print(len(mp))
     return mp.winning_strategy_name
 
-  seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=args.iterations)
+  seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=parsed_args.iterations)
 
-  if args.processes > 1:
-    with Pool(processes=args.processes) as pool:
+  if parsed_args.processes > 1:
+    with Pool(processes=parsed_args.processes) as pool:
       results = pool.map(run_moran_process, seeds)
   else:
     results = []
-    for i in range(args.iterations):
+    for i in range(parsed_args.iterations):
       results.append(run_moran_process(seeds[i]))
 
   winner_counts = {}
