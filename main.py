@@ -1,18 +1,14 @@
 """TODO: docstring"""
 
-import inspect
 import argparse
-import logging
 from collections import defaultdict
-import importlib
-import json
 
 import axelrod as axl
 import numpy as np
 import pandas as pd
 
-import common
 import algorithms
+import common
 
 
 def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) -> dict[tuple[common.Attitude, common.Attitude], float]:

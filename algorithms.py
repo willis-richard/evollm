@@ -9,6 +9,7 @@ import axelrod as axl
 def load_algorithms(module_name: str, keep: float=1) -> list[type[common.LLM_Strategy]]:
   module = importlib.import_module(module_name)
 
+  # Get all classes from the module that are derived from axelrod.Player
   algos = [
     cls for name, cls in inspect.getmembers(module)
     if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
@@ -35,16 +36,16 @@ def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> 
   class Aggressive(StrategySampler):
     attitude = Attitude.AGGRESSIVE
 
-    strategies = [a for a in algos if f"Aggressive{suffix}" in a.__name__]
+    strategies = [a for a in algos if "Aggressive" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Cooperative(StrategySampler):
     attitude = Attitude.COOPERATIVE
 
-    strategies = [a for a in algos if f"Cooperative{suffix}" in a.__name__]
+    strategies = [a for a in algos if "Cooperative" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Neutral(StrategySampler):
     attitude = Attitude.NEUTRAL
 
-    strategies = [a for a in algos if f"Neutral{suffix}" in a.__name__]
+    strategies = [a for a in algos if "Neutral" in a.__name__ and a.__name__.endswith(suffix)]
 
   return Aggressive, Cooperative, Neutral

@@ -2,9 +2,23 @@ import unittest
 import axelrod as axl
 import inspect
 import random
+import argparse
 
 import common
-import output
+import algorithms
+
+
+def parse_arguments() -> argparse.Namespace:
+  """Parse command line arguments."""
+
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument(
+      "--algo",
+      type=str,
+      default="output",
+      help="Name of the python module to call the LLM algorithms")
+
+  return parser.parse_args()
 
 class TestPlayerClass(unittest.TestCase):
   pass
@@ -28,17 +42,15 @@ def create_test(player_class):
       axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds).play()
   return test
 
-# Get all classes from the module that are derived from axelrod.Player
-player_classes = [
-    cls for name, cls in inspect.getmembers(output)
-    if inspect.isclass(cls) and issubclass(cls, common.LLM_Strategy) and cls != common.LLM_Strategy
-  ]
+
+parsed_args = parse_arguments()
+algos = algorithms.load_algorithms(parsed_args.algo)
 
 # Dynamically create test methods for each player class
-for player_class in player_classes:
+for player_class in algos:
   test_method = create_test(player_class)
   test_method.__name__ = f'test_{repr(player_class)}'
   setattr(TestPlayerClass, test_method.__name__, test_method)
 
-
-unittest.main()
+if __name__ == '__main__':
+  unittest.main(argv=['first-arg-is-ignored'])

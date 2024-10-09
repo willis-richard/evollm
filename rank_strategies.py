@@ -46,6 +46,7 @@ def rank_strategies(args: argparse.Namespace):
   for n in range(1, max_n + 1):
     for a in algorithms.create_classes(algos, suffix=f"_{n}"):
       strategy = a()
+      print(strategy.strategies)
       tournament = axl.Tournament(players + [strategy],
                                   turns=algos[0].rounds,
                                   repetitions=3,

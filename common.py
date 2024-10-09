@@ -121,6 +121,7 @@ class LLM_Strategy(axl.player.Player):
     if len(self.history):
       self._rounds_scored += 1
       assert len(self.history) == self._rounds_scored, "Only update the score once per game"
+      assert len(self.history) == len(opponent.history), f"Players have different history lengths: {len(self.history)}, {len(opponent.history)}"
       last_round = (self.history[-1], opponent.history[-1])
       self._score += game.score(last_round)[0]
       # Hack for running against non-LLM_Strategies

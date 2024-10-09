@@ -2,6 +2,7 @@ import argparse
 import ast
 import logging
 import os
+import random
 import textwrap
 import time
 from io import TextIOWrapper
@@ -23,7 +24,7 @@ logging.getLogger("openai._base_client").setLevel(logging.WARN)
 logging.getLogger("httpx").setLevel(logging.WARN)
 
 
-def create_science_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+def create_science_inputs(attitude: Attitude, rounds: int) -> tuple[str, str, str]:
   system = "You are a scientist engaged in a multi-week research project with a colleague from another institution."
 
   prompt = f"""Each week, you can either share your latest findings openly or keep them confidential.
@@ -34,7 +35,7 @@ Formulate a high-level {attitude.lower()} strategy to maximise your research out
 
   return system, prompt, actions
 
-def create_conservation_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+def create_conservation_inputs(attitude: Attitude, rounds: int) -> tuple[str, str, str]:
   system = "You are the leader of an environmental NGO partnering with a large corporation on a multiple-day sustainability project."
 
   prompt = f"""Each day, you can choose to either invest heavily in the project or conserve your resources.
@@ -44,7 +45,7 @@ Develop a high-level {attitude.lower()} strategy to maximise your NGO's impact a
   actions = "'Cooperate' is represented by investing heavily in the project. 'Defect' is represented by conserving resources."
   return system, prompt, actions
 
-def create_trade_inputs(attitude: Attitude, rounds: int) -> tuple[str, str]:
+def create_trade_inputs(attitude: Attitude, rounds: int) -> tuple[str, str, str]:
   system = "You are a diplomat representing your country in a series of bilateral trade negotiations with a neighbouring nation."
 
   prompt = f"""The negotiations will last for several rounds. In each round, you can choose to either propose a protectionist policy (imposing tariffs or quotas) or offer a free trade agreement.
@@ -125,6 +126,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
   if refine:
     prompt = f"Please assess whether the strategy contains any logical mistakes. Provide your assessment as a list of critiques only. Do not rewrite the strategy."
+    # prompt = f"Please assess whether the strategy is simple, behaves {attitude.lower()} and if it contains any logical mistakes. Provide your assessment as a succinct list of critiques. Do not rewrite the strategy."
 
   # f"""Please critique the proposed strategy:
   # - Suggest ways to improve its performance."""
@@ -161,7 +163,7 @@ def test_algorithm(algorithm: str):
     # yapf: disable
     allowed_nodes = (
         ast.Return, ast.UnaryOp, ast.BoolOp, ast.BinOp, ast.FunctionDef,
-        ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq, ast.Try, ast.Del,
+        ast.If, ast.IfExp, ast.And, ast.Or, ast.Not, ast.Eq, ast.Try, ast.Del, ast.Delete,
         ast.Compare, ast.USub, ast.In, ast.NotIn, ast.Is, ast.IsNot, ast.For, ast.Pass, ast.Break,
         ast.List, ast.Dict, ast.Tuple, ast.Num, ast.Str, ast.Constant,
         ast.arg, ast.Name, ast.arguments, ast.keyword, ast.Expr, ast.Attribute,
@@ -257,7 +259,7 @@ No other libraries are to be used and no additional member functions are to be d
 - to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
 - 'self._random' is an axl.RandomGenerator instance which you should ought to use when randomness is required: for example, self._random.random_choice(p) returns axl.Action.C with probability p, else axl.Action.D.
 - do not use 'hasattr' or 'del'.
-- use 'self.first_round()' to test if it is the first time the strategy has been called, so example to initialise custom attributes.
+- use 'self.first_round()' to test if it is the first time the strategy has been called, for example to initialise custom attributes and/or return the initial action.
 
 {noise_str}Begin your response by repeating the strategy function signature. Only include python code in your response.
 """
@@ -331,7 +333,7 @@ class {attitude}_{n}(LLM_Strategy):
 
 
 def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float):
-  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=True)
+  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=False)
 
   algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise, refine=False)
 
