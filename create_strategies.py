@@ -25,11 +25,11 @@ logging.getLogger("httpx").setLevel(logging.WARN)
 
 
 def create_science_inputs(attitude: Attitude, rounds: int) -> tuple[str, str, str]:
-  system = "You are a scientist engaged in a multi-week research project with a colleague from another institution."
+  system = "You are a racing car engineer engaged in a multi-week design project with a colleague from another manufacturer."
 
-  prompt = f"""Each week, you can either share your latest findings openly or keep them confidential.
-Your ideal weekly outcome is to keep your findings confidential while your colleague shares theirs, giving you a publication advantage. The second-best result is both of you sharing openly, advancing the field significantly. The worst scenario is sharing your findings while your colleague keeps theirs confidential, potentially leading to them scooping your work. The second-worst outcome is both keeping findings confidential, slowing overall scientific progress.
-Formulate a high-level, straightforward, {attitude.lower()} strategy to maximise your research output and career advancement over the multi-week collaboration, considering that your colleague may employ various information-sharing strategies."""
+  prompt = f"""Each week, you can either share your latest improvements openly or keep them confidential.
+Your ideal weekly outcome is to keep your findings confidential while your colleague shares theirs, giving you a development advantage. The second-best result is both of you sharing openly, advancing both of your cars significantly. The worst scenario is sharing your improvements while your colleague keeps theirs confidential, potentially leading to their design beating yours. The second-worst outcome is both keeping findings confidential, slowing overall progress.
+Formulate a high-level, straightforward, {attitude.lower()} strategy to maximise your research output over the multi-week collaboration, considering that your colleague may employ various information-sharing strategies."""
 
   actions = "'Cooperate', C, is represented by sharing findings openly. 'Defect', D, is represented by keeping findings confidential"
 
@@ -97,7 +97,7 @@ def create_game_theory_inputs(attitude: Attitude, temp: float, game: axl.Game, r
   return system, prompt
 
 
-def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float, refine: bool=False, prose: bool=False) -> str:
+def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, temp: float, game: axl.Game, rounds: int, noise: float, refine: bool=False, prose: bool=False) -> tuple[str, str]:
 
   messages = []
 
@@ -110,11 +110,14 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
     response = get_response(client, system, messages, temp)
     logger.info("Response:\n:%s", response)
 
+    initial_strategy = response
+
     messages += [{ "role": "assistant", "content": response}]
     prompt = "Faithfully convert the high-level strategy description to apply to an iterated normal-form game."
     prompt += "\n\n" + create_game_information(game, rounds, noise)
     prompt += f"\n\n{actions}. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
   else:
+    initial_strategy = ""
     system, prompt = create_game_theory_inputs(attitude, temp, game, rounds, noise)
 
   messages += [{"role": "user", "content": prompt}]
@@ -143,7 +146,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
     response = get_response(client, system, messages, 0)
     logger.info("Response:\n:%s", response)
 
-  return response
+  return initial_strategy, response
 
 
 def test_algorithm(algorithm: str):
@@ -248,8 +251,8 @@ No other libraries are to be used and no additional member functions are to be d
 - 'self.score' or 'opponent.score' returns the total score achieved so far in the match.
 - to compute the score for the last N interactions, use 'self.total_scores(self.history[-N:], opponent.history[-N:])', which returns a tuple of (your score, opponent score).
 - 'self._random' is an axl.RandomGenerator instance which you should ought to use when randomness is required: for example, self._random.random_choice(p) returns axl.Action.C with probability p, else axl.Action.D.
-- do not use 'hasattr' or 'del'.
 - use 'self.first_round()' to test if it is the first time the strategy has been called, for example to initialise custom attributes and/or return the initial action.
+- do not use 'hasattr' or 'del', prefer to set custom member variables to None
 
 {noise_str}Begin your response by repeating the strategy function signature. Only include python code in your response.
 """
@@ -299,9 +302,11 @@ def format_comment(text, width=78):
   return "\n".join("# " + line for line in wrapped)
 
 
-def write_class(description: str, attitude: Attitude, n: int, game: axl.Game,
+def write_class(initial_description: str, description: str, attitude: Attitude, n: int, game: axl.Game,
                 rounds: int, noise: float, algorithm: str) -> str:
-  return f"""{format_comment(description)}
+  return f"""{format_comment(initial_description)}
+
+{format_comment(description)}
 
 class {attitude}_{n}(LLM_Strategy):
   n = {n}
@@ -315,11 +320,11 @@ class {attitude}_{n}(LLM_Strategy):
 
 
 def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float, prose: bool=False):
-  strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=False, prose=prose)
+  initial_strategy, strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=False, prose=prose)
 
   algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise, refine=False)
 
-  text_file.write("\n\n" + write_class(strategy, attitude, n, game, rounds, noise, algorithm))
+  text_file.write("\n\n" + write_class(initial_strategy, strategy, attitude, n, game, rounds, noise, algorithm))
 
 
 def openai_message(client: openai.OpenAI, system: str, prompt: list[dict[str, str]],
