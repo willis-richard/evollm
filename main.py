@@ -11,7 +11,7 @@ import algorithms
 import common
 
 
-def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) -> dict[tuple[common.Attitude, common.Attitude], float]:
+def analyse_by_genome(data: list[list[int | float]], players: list[axl.Player]) -> pd.DataFrame:
   data_matrix = np.array(data)
   rates = defaultdict(list)
 
@@ -54,11 +54,15 @@ def parse_arguments() -> argparse.Namespace:
       type=common.temp_arg,
       default=1,
       help="Use algorithms up to this bottom percentile (1 is worst performing)")
+  parser.add_argument(
+      "--h2h",
+      action="store_true",
+      help="Pit the algorithms head-to-head (instead of Beaufils tournament)")
 
   return parser.parse_args()
 
 
-def play_vs_llm_strats(algos: list[type[common.LLM_Strategy]]) -> None:
+def play_vs_llm_strats(file_name: str, algos: list[type[common.LLM_Strategy]]) -> None:
   players = [a() for a in algos]
   print(f"Players: {players}")
 
@@ -70,14 +74,19 @@ def play_vs_llm_strats(algos: list[type[common.LLM_Strategy]]) -> None:
     noise=algos[0].noise,
   )
 
-  results = tournament.play(processes=0, filename="results_full.txt")
-  results.write_summary("results_summary.txt")
+  results = tournament.play(processes=0, filename=f"results/{file_name}_results_full.txt")
+  results.write_summary(f"results/{file_name}_results_summary.txt")
 
-  print("Normalised cooperation\n", analyse_by_genome(results.normalised_cooperation, players))
-  print("Payoff\n", analyse_by_genome(results.payoffs, players))
-
+  normalised_cooperation = analyse_by_genome(results.normalised_cooperation, players)
+  print("Normalised cooperation\n", normalised_cooperation)
+  payoffs = analyse_by_genome(results.payoffs, players)
+  print("Payoff\n", payoffs)
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
+  with open(f"results/{file_name}_matrices.txt", "w", encoding="utf8") as f:
+    f.write(normalised_cooperation.to_string())
+    f.write(payoffs.to_string())
+    f.write(df.to_string())
 
 
 def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
@@ -122,6 +131,6 @@ if __name__ == "__main__":
 
   algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
 
-  play_vs_llm_strats(algos)
+  play_vs_llm_strats(parsed_args.algo, algos)
 
   play_beaufils(algos)
