@@ -75,7 +75,6 @@ def play_vs_llm_strats(file_name: str, algos: list[type[common.LLM_Strategy]]) -
   )
 
   results = tournament.play(processes=0, filename=f"results/{file_name}_results_full.txt")
-  results.write_summary(f"results/{file_name}_results_summary.txt")
 
   normalised_cooperation = analyse_by_genome(results.normalised_cooperation, players)
   print("Normalised cooperation\n", normalised_cooperation)
@@ -84,9 +83,9 @@ def play_vs_llm_strats(file_name: str, algos: list[type[common.LLM_Strategy]]) -
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
   with open(f"results/{file_name}_matrices.txt", "w", encoding="utf8") as f:
-    f.write(normalised_cooperation.to_string())
-    f.write(payoffs.to_string())
-    f.write(df.to_string())
+    f.write(f"Normalised cooperation:\n{normalised_cooperation.to_string()}\n")
+    f.write(f"\nPayoffs:\n{payoffs.to_string()}\n")
+    f.write(f"\nResults Summary:\n{df.to_string()}")
 
 
 def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:

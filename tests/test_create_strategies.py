@@ -17,6 +17,10 @@ def parse_arguments() -> argparse.Namespace:
       type=str,
       default="output",
       help="Name of the python module to call the LLM algorithms")
+  parser.add_argument(
+      "--name",
+      action="store_true",
+      help="Print the name of the class being tested, to help discover slow implementations")
 
   return parser.parse_args()
 
@@ -32,9 +36,10 @@ def check_for_string(func, string):
   source = inspect.getsource(func)
   return string in source
 
-def create_test(player_class):
+def create_test(player_class: type[common.LLM_Strategy], log: bool=False):
   def test(self):
-    # print(f"{player_class.__name__}")
+    if log:
+      print(f"{player_class.__name__}")
     self.assertFalse(check_for_string(player_class.strategy, "hasattr"), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
     self.assertFalse(check_for_string(player_class.strategy, "del"), "del found in code, typically replace this with setting the variable to zero")
     game = common.get_game(player_class.game)
@@ -49,7 +54,7 @@ algos = algorithms.load_algorithms(parsed_args.algo)
 
 # Dynamically create test methods for each player class
 for player_class in algos:
-  test_method = create_test(player_class)
+  test_method = create_test(player_class, parsed_args.name)
   test_method.__name__ = f'test_{repr(player_class)}'
   setattr(TestPlayerClass, test_method.__name__, test_method)
 

@@ -1,6 +1,4 @@
 .pylintrc
 .virtual_documents
-results
-results_full.txt
-results_summary.txt
+results/*full.txt
 create_strategies.log
