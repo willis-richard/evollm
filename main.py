@@ -130,6 +130,7 @@ if __name__ == "__main__":
 
   algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
 
-  play_vs_llm_strats(parsed_args.algo, algos)
-
-  play_beaufils(algos)
+  if parsed_args.h2h:
+    play_vs_llm_strats(parsed_args.algo, algos)
+  else:
+    play_beaufils(algos)

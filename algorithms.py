@@ -36,16 +36,19 @@ def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> 
       return self.selected_strategy(opponent)
 
   class Aggressive(StrategySampler):
+    name = "LLM: Aggressive (ours)"
     attitude = Attitude.AGGRESSIVE
 
     strategies = [a for a in algos if "Aggressive" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Cooperative(StrategySampler):
+    name = "LLM: Cooperative (ours)"
     attitude = Attitude.COOPERATIVE
 
     strategies = [a for a in algos if "Cooperative" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Neutral(StrategySampler):
+    name = "LLM: Neutral (ours)"
     attitude = Attitude.NEUTRAL
 
     strategies = [a for a in algos if "Neutral" in a.__name__ and a.__name__.endswith(suffix)]

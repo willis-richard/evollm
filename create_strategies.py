@@ -319,8 +319,8 @@ class {attitude}_{n}(LLM_Strategy):
 {algorithm}"""
 
 
-def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float, prose: bool=False):
-  initial_strategy, strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=False, prose=prose)
+def generate_class(text_file: TextIOWrapper, strategy_client: openai.OpenAI | anthropic.Anthropic, algorithm_client: openai.OpenAI | anthropic.Anthropic, attitude: Attitude, n: int, temp: float, game: axl.Game, rounds: int, noise: float, refine: bool=False, prose: bool=False):
+  initial_strategy, strategy = generate_strategies(strategy_client, attitude, temp, game, rounds, noise, refine=refine, prose=prose)
 
   algorithm = generate_algorithm(algorithm_client, strategy, game, rounds, noise, refine=False)
 
@@ -416,6 +416,10 @@ def parse_arguments() -> argparse.Namespace:
       default="output",
       help="Name of the python module to call the LLM algorithms")
   parser.add_argument(
+      "--refine",
+      action="store_true",
+      help="Whether to ask the LLM to critique and rewrite its strategy.")
+  parser.add_argument(
       "--prose",
       action="store_true",
       help="Whether to obfuscate that the strategy is for IPD.")
@@ -446,7 +450,7 @@ from common import Attitude, auto_update_score, LLM_Strategy""")
 
   with open(f"{args.algo}.py", "a", encoding="utf8") as f:
     for a, n in strategies_to_create:
-      generate_class(f, strategy_client, algorithm_client, a, n, args.temp, game, args.rounds, args.noise, args.prose)
+      generate_class(f, strategy_client, algorithm_client, a, n, args.temp, game, args.rounds, args.noise, args.refine, args.prose)
 
 
 if __name__ == "__main__":
