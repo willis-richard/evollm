@@ -40,12 +40,12 @@ def create_test(player_class: type[common.LLM_Strategy], log: bool=False):
   def test(self):
     if log:
       print(f"{player_class.__name__}")
-    self.assertFalse(check_for_string(player_class.strategy, "hasattr"), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
-    self.assertFalse(check_for_string(player_class.strategy, "del"), "del found in code, typically replace this with setting the variable to zero")
+    self.assertFalse(check_for_string(player_class.strategy, "hasattr("), "hasattr found in code, typically replace this with a 'if not self.history' call to initialise variables")
+    self.assertFalse(check_for_string(player_class.strategy, "del "), "del found in code, typically replace this with setting the variable to zero")
     game = common.get_game(player_class.game)
     for _ in range(3):
-      axl.Match((player_class(), axl.Random()), game=game, turns=player_class.rounds).play()
-      axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds).play()
+      axl.Match((player_class(), axl.Random()), game=game, turns=player_class.rounds, noise=player_class.noise).play()
+      axl.Match((player_class(), player_class()), game=game, turns=player_class.rounds, noise=player_class.noise).play()
   return test
 
 
