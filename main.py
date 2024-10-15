@@ -4,6 +4,7 @@ import argparse
 from collections import defaultdict
 
 import axelrod as axl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -88,7 +89,7 @@ def play_vs_llm_strats(file_name: str, algos: list[type[common.LLM_Strategy]]) -
     f.write(f"\nResults Summary:\n{df.to_string()}")
 
 
-def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
+def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None:
   classes = [axl.Cooperator,
           axl.Defector,
           axl.Random,
@@ -120,9 +121,28 @@ def play_beaufils(algos:list[type[common.LLM_Strategy]]) -> None:
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
 
+  # plt.rcParams.update({"font.size": 14})
   plot = axl.Plot(results)
   p = plot.boxplot()
-  p.savefig("fig.png")
+
+  # Get the current size
+  size = p.get_size_inches()
+
+  # Calculate the new size (20% larger)
+  size[1] = size[1] * 1.2
+
+  # Set the new size
+  p.set_size_inches(size)
+
+  # plt.xlabel("Strategies", fontsize=16)
+  # plt.ylabel("Normalised Payoff", fontsize=16)
+  plt.xticks(fontsize=24, rotation=45, ha='right')
+  plt.yticks(fontsize=24)
+
+  p.subplots_adjust(bottom=0.4)
+  p.tight_layout()
+
+  p.savefig(f"results/{file_name}.png")
 
 
 if __name__ == "__main__":
@@ -133,4 +153,4 @@ if __name__ == "__main__":
   if parsed_args.h2h:
     play_vs_llm_strats(parsed_args.algo, algos)
   else:
-    play_beaufils(algos)
+    play_beaufils(parsed_args.algo, algos)

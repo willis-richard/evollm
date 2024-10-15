@@ -28,6 +28,9 @@ def load_algorithms(module_name: str, keep_top: float=0, keep_bottom: float=1) -
 def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> tuple[type[common.LLM_Strategy], type[common.LLM_Strategy], type[common.LLM_Strategy]]:
 
   class StrategySampler(common.LLM_Strategy):
+    def __repr__(self) -> str:
+      return self.__class__.name
+
     def strategy(self, opponent: axl.player.Player) -> axl.Action:
       # init is called before every match (or reset and clone, which call init)
       if not self.history:
@@ -38,6 +41,7 @@ def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> 
   class Aggressive(StrategySampler):
     name = "LLM: Aggressive (ours)"
     attitude = Attitude.AGGRESSIVE
+
 
     strategies = [a for a in algos if "Aggressive" in a.__name__ and a.__name__.endswith(suffix)]
 
