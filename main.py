@@ -142,7 +142,7 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
   p.subplots_adjust(bottom=0.4)
   p.tight_layout()
 
-  p.savefig(f"results/{file_name}.png")
+  p.savefig(f"results/{file_name}.png", dpi=300)
 
 
 if __name__ == "__main__":

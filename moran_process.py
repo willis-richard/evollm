@@ -43,6 +43,10 @@ def parse_arguments() -> argparse.Namespace:
       type=common.positive_int,
       default=1,
       help="Number of processes to run simultaneously")
+  parser.add_argument(
+      "--plot",
+      action="store_true",
+      help="Plot an example trajectory instead")
 
   return parser.parse_args()
 
@@ -56,40 +60,54 @@ if __name__ == "__main__":
   players = [cls() for cls, count in zip(classes, parsed_args.initial_pop) for _ in range(count)]
   print(players)
 
-  def run_moran_process(seed):
+  if parsed_args.plot:
     mp = axl.MoranProcess(
         players,
-        seed=seed,
         turns=algos[0].rounds,
         noise=algos[0].noise,
         game=common.get_game(algos[0].game))
 
     populations = mp.play()
-    # pprint.pprint(populations)
-    print(mp.winning_strategy_name)
-    print(len(mp))
-    return mp.winning_strategy_name
+    ax = mp.populations_plot()
+    ax.set_title(ax.get_title(), fontsize=14)
+    ax.set_xlabel(ax.get_xlabel(), fontsize=14)
+    ax.set_ylabel(ax.get_ylabel(), fontsize=14)
 
-  seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=parsed_args.iterations)
-
-  if parsed_args.processes > 1:
-    with Pool(processes=parsed_args.processes) as pool:
-      results = pool.map(run_moran_process, seeds)
+    fig = ax.get_figure()
+    fig.savefig("results/example_moran.png", dpi=300, bbox_inches='tight')
   else:
-    results = []
-    for i in range(parsed_args.iterations):
-      results.append(run_moran_process(seeds[i]))
+    def run_moran_process(seed):
+      mp = axl.MoranProcess(
+          players,
+          seed=seed,
+          turns=algos[0].rounds,
+          noise=algos[0].noise,
+          game=common.get_game(algos[0].game))
 
-  winner_counts = {}
-  for winner in results:
-      winner_counts[winner] = winner_counts.get(winner, 0) + 1
+      populations = mp.play()
+      # pprint.pprint(populations)
+      print(mp.winning_strategy_name, len(mp))
+      return mp.winning_strategy_name
 
-  print(winner_counts)
+    seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=parsed_args.iterations)
+
+    if parsed_args.processes > 1:
+      with Pool(processes=parsed_args.processes) as pool:
+        results = pool.map(run_moran_process, seeds)
+    else:
+      results = []
+      for i in range(parsed_args.iterations):
+        results.append(run_moran_process(seeds[i]))
+
+    winner_counts = {}
+    for winner in results:
+        winner_counts[winner] = winner_counts.get(winner, 0) + 1
+
+    print(winner_counts)
 
   # for row in mp.score_history:
   #   print([round(element, 1) for element in row])
 
-  # ax = mp.populations_plot()
   # plt.show()
 
   # for _ in range(1000):  # Run for 1000 steps
