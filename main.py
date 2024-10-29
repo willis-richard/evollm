@@ -110,7 +110,7 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
   tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
                               game=common.get_game(algos[0].game),
                               turns=algos[0].rounds,
-                              repetitions=20,
+                              repetitions=100,
                               noise=algos[0].noise,
                               seed=1)
   results = tournament.play(processes=0)

@@ -1,4 +1,4 @@
-name: llm
+name: evollm
 channels:
   - conda-forge
 dependencies:
@@ -6,6 +6,7 @@ dependencies:
 
   - anthropic
   - dask
+  - openai
 
   # optionals
   - jupyterlab
