@@ -15,6 +15,13 @@ conda activate evollm
 export PYTHONPATH="$(pwd)/src"
 ```
 
+## Prompts
+`./src/evollm/promts` contains the promts used to generate the strategies.
+
+## Strategies
+
+`./strategies` contains the generated strategies used in the paper, except for the ChatGPT-4o strategies for the Refine prompt with noise, which have been accidentally lost.
+
 ## Experiments
 
 In order to rerun the analysis from the paper, follow these steps. To see the options, use `--help` on any of the scripts.
@@ -34,20 +41,15 @@ Rank the strategies in Beaufils tournament using
 python3 src/evollm/rank_strategies.py --algo anthropic_prose_noise.py
 ```
 
-Compare their head-to-head performance with
+Compare the head-to-head performance of the Attitude-Agents with
 ```shell
 python3 src/evollm/head_to_head.py --algo anthropic_prose_noise.py --h2h
 ```
 
-or the Attiude-Agents performance in the Beaufils tournament with
+and assess the Attiude-Agents' performance in the Beaufils tournament with
 ```shell
 python3 src/evollm/head_to_head.py --algo anthropic_prose_noise.py
 ```
-
-
-## Strategies
-
-`./save` contains the generated strategies used in the paper
 
 ## Results
 
