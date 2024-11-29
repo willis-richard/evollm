@@ -17,10 +17,10 @@ def create_game_information(game: axl.Game, rounds: int, noise: float) -> str:
 - If you play D and your opponent plays D, you both score {P}.{noise_str}"""
 
 
-def create_default_prompt(attitude: Attitude, game: axl.Game, rounds: int, noise: float) -> tuple[str, str]:
+def create_default_prompt(attitude: Attitude, game_information: str) -> tuple[str, str]:
   system = "You are an AI assistant with expertise in strategic thinking."
   prompt = f"Develop a simple strategy for an iterated normal-form game that adopts a {attitude.lower()} approach to maximise your overall payoff considering the game's payoff structure. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
-  prompt += "\n\n" + create_game_information(game, rounds, noise)
+  prompt += "\n\n" + game_information
 
   return system, prompt
 
@@ -100,9 +100,9 @@ def create_first_prose_prompt(attitude: Attitude, noise: float) -> tuple[str, st
   return system, prompt, actions
 
 
-def create_second_prose_prompt(actions: str, game: axl.Game, rounds: int, noise: float) -> str:
+def create_second_prose_prompt(actions: str, game_information: str) -> str:
   prompt = "Faithfully convert the high-level strategy description to apply to an iterated normal-form game."
-  prompt += "\n\n" + create_game_information(game, rounds, noise)
+  prompt += "\n\n" + game_information
   prompt += f"\n\n{actions}. Provide a straightforward description using only natural language with minimal commentary. Be clear and specific about the conditions governing when to cooperate or defect, and order them appropriately."
   return prompt
 

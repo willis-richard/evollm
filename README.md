@@ -16,11 +16,15 @@ export PYTHONPATH="$(pwd)/src"
 ```
 
 ## Prompts
-`./src/evollm/promts` contains the promts used to generate the strategies.
+`./src/evollm/prompts.py` contains the prompts used to generate the strategies.
 
 ## Strategies
 
-`./strategies` contains the generated strategies used in the paper, except for the ChatGPT-4o strategies for the Refine prompt with noise, which have been accidentally lost.
+`./strategies` contains the generated strategies used in the paper, except for the ChatGPT-4o strategies for the Refine prompt with noise, which have been accidentally lost. Each strategy includes both the natural language descriptions and the implemented algorithm. For the 'prose' prompt, we include both the high-level scenario strategy and the subsequent iterated normal-form game specific strategy.
+
+## Results
+
+`./results` contains the results shown in the paper
 
 ## Experiments
 
@@ -50,7 +54,3 @@ and assess the Attiude-Agents' performance in the Beaufils tournament with
 ```shell
 python3 src/evollm/head_to_head.py --algo anthropic_prose_noise.py
 ```
-
-## Results
-
-`./results` contains the results shown in the paper

@@ -37,7 +37,7 @@ def rank_strategies(args: argparse.Namespace):
           ]
 
   players = [c() for c in classes]
-  algo_results = defaultdict(dict)
+  algo_results: dict[str, dict] = defaultdict(dict)
   ranks = defaultdict(list)
 
   algos = algorithms.load_algorithms(args.algo)

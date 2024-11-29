@@ -26,6 +26,8 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
   messages = []
 
+  game_information = prompts.create_game_information(game, rounds, noise)
+
   if prose:
     system, prompt, actions = prompts.create_first_prose_prompt(attitude, noise)
 
@@ -38,7 +40,7 @@ def generate_strategies(client: openai.OpenAI | anthropic.Anthropic, attitude: A
 
     messages += [{ "role": "assistant", "content": response}]
 
-    prompt = prompts.create_second_prose_prompt(actions, game, rounds, noise)
+    prompt = prompts.create_second_prose_prompt(actions, game_information)
   else:
     initial_strategy = ""
     system, prompt = prompts.create_default_prompt(attitude, game, rounds, noise)

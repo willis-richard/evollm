@@ -115,9 +115,6 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
                               seed=1)
   results = tournament.play(processes=0)
 
-  # for average_score_per_turn in results.payoff_matrix[-2]:
-  #   print(round(average_score_per_turn * args.rounds, 1))
-
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
 
@@ -134,8 +131,6 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
   # Set the new size
   p.set_size_inches(size)
 
-  # plt.xlabel("Strategies", fontsize=16)
-  # plt.ylabel("Normalised Payoff", fontsize=16)
   plt.xticks(fontsize=24, rotation=45, ha='right')
   plt.yticks(fontsize=24)
 
