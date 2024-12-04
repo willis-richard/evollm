@@ -7,7 +7,7 @@ import axelrod as axl
 from evollm import common
 
 
-def load_module(module_path):
+def load_module(module_path: str):
   """
   Load a Python module from either an absolute or relative path.
 
@@ -17,6 +17,9 @@ def load_module(module_path):
   Returns:
       module: The loaded Python module
   """
+  # add .py if missing from the module
+  if not module_path.endswith(".py"):
+    module_path += ".py"
 
   # Convert relative path to absolute path if needed
   if not os.path.isabs(module_path):
@@ -63,7 +66,7 @@ def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> 
 
   class StrategySampler(common.LLM_Strategy):
     def __repr__(self) -> str:
-      return self.__class__.name
+      return f"LLM: {self.__class__.name} (ours)"
 
     def strategy(self, opponent: axl.player.Player) -> axl.Action:
       # init is called before every match (or reset and clone, which call init)
@@ -73,20 +76,20 @@ def create_classes(algos: list[type[common.LLM_Strategy]], suffix: str = "") -> 
       return self.selected_strategy(opponent)
 
   class Aggressive(StrategySampler):
-    name = "LLM: Aggressive (ours)"
+    name = "Aggressive"
     attitude = common.Attitude.AGGRESSIVE
 
 
     strategies = [a for a in algos if "Aggressive" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Cooperative(StrategySampler):
-    name = "LLM: Cooperative (ours)"
+    name = "Cooperative"
     attitude = common.Attitude.COOPERATIVE
 
     strategies = [a for a in algos if "Cooperative" in a.__name__ and a.__name__.endswith(suffix)]
 
   class Neutral(StrategySampler):
-    name = "LLM: Neutral (ours)"
+    name = "Neutral"
     attitude = common.Attitude.NEUTRAL
 
     strategies = [a for a in algos if "Neutral" in a.__name__ and a.__name__.endswith(suffix)]

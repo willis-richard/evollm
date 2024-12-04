@@ -54,7 +54,7 @@ def rank_strategies(args: argparse.Namespace):
                                   seed=1,
                                   game=common.get_game(algos[0].game))
       results = tournament.play(processes=0)
-      algo_results[repr(strategy)][n] = results.scores[-1][0]
+      algo_results[strategy.name][n] = results.scores[-1][0]
   for k, v in algo_results.items():
     sorted_s = pd.Series(v).sort_values(ascending=False)
     print(k, sorted_s, sep="\n")
