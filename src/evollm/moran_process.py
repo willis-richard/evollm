@@ -63,18 +63,30 @@ if __name__ == "__main__":
   if parsed_args.plot:
     mp = axl.MoranProcess(
         players,
+        seed=1,
         turns=algos[0].rounds,
         noise=algos[0].noise,
         game=common.get_game(algos[0].game))
 
     populations = mp.play()
     ax = mp.populations_plot()
-    ax.set_title(ax.get_title(), fontsize=14)
-    ax.set_xlabel(ax.get_xlabel(), fontsize=14)
-    ax.set_ylabel(ax.get_ylabel(), fontsize=14)
 
     fig = ax.get_figure()
-    fig.savefig("results/example_moran.png", dpi=300, bbox_inches='tight')
+    fig.set_size_inches(3, 2)
+
+    ax.set_title('Population by iteration', fontsize=8)
+    # ax.set_title(None)
+    ax.set_xlabel(ax.get_xlabel(), fontsize=8)
+    ax.set_ylabel(ax.get_ylabel(), fontsize=8)
+
+    # ax.legend(labels=['Aggressive', 'Cooperative', 'Neutral'], bbox_to_anchor=(0, 1.3), loc='upper left', ncol=3, frameon=False, columnspacing=0.5, fontsize=9)
+    ax.legend(labels=['Aggressive', 'Cooperative', 'Neutral'], loc='lower center', fontsize=8)
+
+    ax.set_ylim(0, 12)
+    ax.set_yticks(np.arange(0, 12 + 1, 4))
+
+    fig = ax.get_figure()
+    fig.savefig("results/example_moran.png", dpi=500, bbox_inches='tight')
   else:
     def run_moran_process(seed):
       mp = axl.MoranProcess(
