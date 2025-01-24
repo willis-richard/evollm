@@ -110,7 +110,7 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
   tournament = axl.Tournament(players + [Aggressive(), Cooperative(), Neutral()],
                               game=common.get_game(algos[0].game),
                               turns=algos[0].rounds,
-                              repetitions=100,
+                              repetitions=200,
                               noise=algos[0].noise,
                               seed=1)
   results = tournament.play(processes=0)
@@ -118,26 +118,23 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
 
-  # plt.rcParams.update({"font.size": 14})
+  fig, ax = plt.subplots(facecolor='white')
   plot = axl.Plot(results)
-  p = plot.boxplot()
-
-  # Get the current size
-  size = p.get_size_inches()
-
-  # Calculate the new size (20% larger)
-  size[1] = size[1] * 1.2
+  p = plot.boxplot(ax=ax)
 
   # Set the new size
-  p.set_size_inches(size)
+  p.set_size_inches(3.2, 2.4)
 
-  plt.xticks(fontsize=24, rotation=45, ha='right')
-  plt.yticks(fontsize=24)
+  plt.xticks(fontsize=7, rotation=45, ha='right')
+  plt.yticks(fontsize=7)
 
-  p.subplots_adjust(bottom=0.4)
+  ax.set_ylim(1.4, 2.8)
+  ax.set_yticks(np.arange(1.4, 2.81, 0.2))
+
+  p.subplots_adjust(bottom=0.35)
   p.tight_layout()
 
-  p.savefig(f"results/{file_name}.png", dpi=300)
+  p.savefig(f"results/beaufils.svg", format='svg', bbox_inches='tight')
 
 
 if __name__ == "__main__":
