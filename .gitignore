@@ -2,3 +2,5 @@
 .virtual_documents
 results/*full.txt
 create_strategies.log
+*png
+*svg

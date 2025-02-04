@@ -16,15 +16,15 @@ export PYTHONPATH="$(pwd)/src"
 ```
 
 ## Prompts
-`./src/evollm/prompts.py` contains the prompts used to generate the strategies.
+[prompts](./src/evollm/prompts.py) contains the prompts used to generate the strategies.
 
 ## Strategies
 
-`./strategies` contains the generated strategies used in the paper, except for the ChatGPT-4o strategies for the Refine prompt with noise, which have been accidentally lost. Each strategy includes both the natural language descriptions and the implemented algorithm. For the 'prose' prompt, we include both the high-level scenario strategy and the subsequent iterated normal-form game specific strategy.
+[strategies](./strategies) contains the generated strategies used in the paper, except for the ChatGPT-4o strategies using the Refine prompt with noise, which have been accidentally lost. Each strategy includes both the natural language descriptions and the implemented algorithm. For the 'prose' prompt, we include both the high-level scenario strategy and the subsequent iterated normal-form game specific strategy.
 
 ## Results
 
-`./results` contains the results shown in the paper
+[results](./results) contains the results shown in the paper
 
 ## Experiments
 
