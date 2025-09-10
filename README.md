@@ -1,4 +1,9 @@
-This repository accompanies the paper "Will Systems of LLM Agents Lead to Cooperation: An Investigation into a Social Dilemma", under review at OpenReview.
+This repository accompanies the paper "Will Systems of LLM Agents Lead to Cooperation: An Investigation into a Social Dilemma".
+
+- [AAMAS 2025 extended abstract](https://ifaamas.csc.liv.ac.uk/Proceedings/aamas2025/pdfs/p2786.pdf)
+- [Full paper on arXiv](https://arxiv.org/pdf/2501.16173)
+
+This project is being extended to multi-player games: public goods game, collective risk dilemma and a common pool resource / fisheries game, in my other repo [emergent_llm](github.com/willis-richard/emergent_llm).
 
 ## Installation
 
