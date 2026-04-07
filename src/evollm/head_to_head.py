@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+import os
 
 import axelrod as axl
 import matplotlib.pyplot as plt
@@ -142,7 +143,8 @@ if __name__ == "__main__":
 
   algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
 
+  algo_name = os.path.splitext(os.path.basename(parsed_args.algo))[0]
   if parsed_args.h2h:
-    play_vs_llm_strats(parsed_args.algo, algos)
+    play_vs_llm_strats(algo_name, algos)
   else:
-    play_beaufils(parsed_args.algo, algos)
+    play_beaufils(algo_name, algos)
