@@ -101,7 +101,7 @@ if __name__ == "__main__":
       print(mp.winning_strategy_name, len(mp))
       return mp.winning_strategy_name
 
-    seeds = np.random.randint(0, np.iinfo(np.uint32).max, size=parsed_args.iterations)
+    seeds = np.random.randint(0, np.iinfo(np.int32).max, size=parsed_args.iterations)
 
     if parsed_args.processes > 1:
       with Pool(processes=parsed_args.processes) as pool:
