@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+import os
 
 import axelrod as axl
 import matplotlib.pyplot as plt
@@ -75,7 +76,7 @@ def play_vs_llm_strats(file_name: str, algos: list[type[common.LLM_Strategy]]) -
     noise=algos[0].noise,
   )
 
-  results = tournament.play(processes=0, filename=f"results/{file_name}_results_full.txt")
+  results = tournament.play(processes=None, filename=f"results/{file_name}_results_full.txt")
 
   normalised_cooperation = analyse_by_genome(results.normalised_cooperation, players)
   print("Normalised cooperation\n", normalised_cooperation)
@@ -113,7 +114,7 @@ def play_beaufils(file_name: str, algos:list[type[common.LLM_Strategy]]) -> None
                               repetitions=200,
                               noise=algos[0].noise,
                               seed=1)
-  results = tournament.play(processes=0)
+  results = tournament.play(processes=None)
 
   df = pd.DataFrame(results.summarise()).set_index("Rank", drop=True)
   print(df)
@@ -142,7 +143,8 @@ if __name__ == "__main__":
 
   algos = algorithms.load_algorithms(parsed_args.algo, parsed_args.keep_top, parsed_args.keep_bottom)
 
+  algo_name = os.path.splitext(os.path.basename(parsed_args.algo))[0]
   if parsed_args.h2h:
-    play_vs_llm_strats(parsed_args.algo, algos)
+    play_vs_llm_strats(algo_name, algos)
   else:
-    play_beaufils(parsed_args.algo, algos)
+    play_beaufils(algo_name, algos)
