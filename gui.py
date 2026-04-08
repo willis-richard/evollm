@@ -427,6 +427,7 @@ with tab_moran:
                         st.plotly_chart(
                             make_winner_bar(winner_counts),
                             use_container_width=True,
+                            key="moran_winner_bar",
                         )
                     else:
                         st.warning("No se pudo extraer el conteo de ganadores del log.")
@@ -542,6 +543,7 @@ with tab_torneo:
                                     ".3f",
                                 ),
                                 use_container_width=True,
+                                key="torneo_h2h_coop",
                             )
                             st.caption(
                                 "Verde = alta cooperación, Rojo = alta traición. "
@@ -551,6 +553,7 @@ with tab_torneo:
                             st.plotly_chart(
                                 make_heatmap(pay_df, "Pagos medios por actitud", "Blues", ".2f"),
                                 use_container_width=True,
+                                key="torneo_h2h_pay",
                             )
                             st.caption("Puntaje promedio obtenido por cada actitud frente a cada oponente.")
 
@@ -621,7 +624,7 @@ with tab_dashboard:
                 "Tasa de Cooperación normalizada",
                 "RdYlGn", ".3f",
             )
-            st.plotly_chart(fig_coop, use_container_width=True)
+            st.plotly_chart(fig_coop, use_container_width=True, key="dash_coop")
             st.caption(
                 "Verde oscuro = cooperación casi total. Rojo = traición. "
                 "Por ejemplo, Cooperativo vs Cooperativo suele estar cerca de 1.0."
@@ -629,7 +632,7 @@ with tab_dashboard:
 
         with col_d2:
             fig_pay = make_heatmap(pay_df, "Pagos medios por actitud", "Blues", ".2f")
-            st.plotly_chart(fig_pay, use_container_width=True)
+            st.plotly_chart(fig_pay, use_container_width=True, key="dash_pay")
             st.caption(
                 "Puntaje promedio obtenido en cada combinación de actitudes. "
                 "Los valores más altos indican mayor éxito en el juego."
@@ -661,7 +664,7 @@ with tab_dashboard:
                 margin=dict(l=40, r=40, t=40, b=40),
                 legend=dict(orientation="h", y=-0.1),
             )
-            st.plotly_chart(fig_radar, use_container_width=False)
+            st.plotly_chart(fig_radar, use_container_width=False, key="dash_radar")
             st.caption(
                 "Cada eje representa un tipo de oponente. "
                 "Una actitud que ocupa más área coopera más en general."
@@ -677,6 +680,7 @@ with tab_dashboard:
             st.plotly_chart(
                 make_winner_bar(st.session_state["moran_winner_counts"]),
                 use_container_width=True,
+                key="dash_winner_bar",
             )
 
         # --- Imagen Moran (si existe) ---
@@ -796,7 +800,7 @@ with tab_dashboard:
                     xaxis_tickangle=-25,
                     margin=dict(l=10, r=10, t=50, b=80),
                 )
-                st.plotly_chart(fig_cmp, use_container_width=True)
+                st.plotly_chart(fig_cmp, use_container_width=True, key="dash_compare")
             else:
                 st.info("No hay datos suficientes para comparar los experimentos seleccionados.")
         elif len(compare_sel) == 1:
