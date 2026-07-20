@@ -3,21 +3,20 @@ This repository accompanies the paper "Will Systems of LLM Agents Lead to Cooper
 - [AAMAS 2025 extended abstract](https://ifaamas.csc.liv.ac.uk/Proceedings/aamas2025/pdfs/p2786.pdf)
 - [Full paper on arXiv](https://arxiv.org/pdf/2501.16173)
 
-This project is being extended to multi-player games: public goods game, collective risk dilemma and a common pool resource / fisheries game, in my other repo [emergent_llm](github.com/willis-richard/emergent_llm).
+This project is being extended to multi-player games: public goods game, collective risk dilemma and a common pool resource / fisheries game, in my other repo [emergent_llm](https://github.com/willis-richard/emergent_llm).
 
 ## Installation
 
-Install the dependencies using conda
+Install the dependencies using conda, which also installs this repo in development mode
 
 ```shell
 conda create -f environment.yml
 ```
 
-Activate the environment and add the repo to the PYTHONPATH
+Activate the environment
 
 ```shell
 conda activate evollm
-export PYTHONPATH="$(pwd)/src"
 ```
 
 ## Prompts

@@ -11,3 +11,4 @@ dependencies:
   - pip
   - pip:
     - axelrod
+    - -e .  # Install this package in development mode
